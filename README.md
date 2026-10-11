@@ -54,5 +54,5 @@ Ce dépôt documente un sprint intensif de 10 jours visant à démontrer mes com
 
 ## 👤 Auteur
 **Ilyass Jenjare**
-- **LinkedIn :** [Insérer le lien vers votre profil LinkedIn]
-- **Contact :** [Insérer votre adresse courriel]
+- **LinkedIn :** https://www.linkedin.com/in/ilyass-jenjare
+- **Contact :** Ilyas.Jenjare@Usherbrooke.ca
