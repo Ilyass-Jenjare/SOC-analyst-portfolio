@@ -1,0 +1,32 @@
+soc-analyst-portfolio/
+│
+├── README.md                  (Celui que je viens de te donner)
+├── .gitignore                 (Pour éviter d'envoyer des fichiers inutiles)
+│
+├── 01_Phishing_Analysis/      (Projet 1 - Aujourd'hui)
+│   ├── README.md              (Résumé spécifique à ce projet)
+│   ├── iocs.csv
+│   ├── report.pdf
+│   └── screenshots/           (Pour tes captures d'écran d'en-têtes, etc.)
+│
+├── 02_Network_Forensics/      (Projet 2 - À venir)
+│   ├── README.md
+│   ├── incident_timeline.md
+│   ├── report.pdf
+│   └── screenshots/
+│
+├── 03_Incident_Response/      (Projet 3)
+│   ├── README.md
+│   └── SANS_IR_report.pdf
+│
+├── 04_CTI_Report/             (Projet 4)
+│   ├── README.md
+│   ├── CTI_brief.pdf
+│   └── ATTACK_Navigator.json
+│
+└── 05_Home_SIEM/              (Projet 5)
+    ├── README.md
+    ├── architecture_diagram.png
+    ├── writeup_alert.md
+    ├── detection-rules/       (Pour tes fichiers .sigma ou .spl)
+    └── screenshots/
