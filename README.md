@@ -2,7 +2,7 @@
 
 Ce dépôt documente un sprint intensif de 10 jours visant à démontrer mes compétences opérationnelles (Blue Team) pour des rôles d'Analyste SOC et de spécialiste en cybersécurité. Chaque projet simule des tâches réelles d'investigation, de triage et de réponse aux incidents, en s'appuyant sur des standards de l'industrie (MITRE ATT&CK, NIST, SANS).
 
-## 🎯 Objectifs du Portfolio
+##  Objectifs du Portfolio
 - Analyser et qualifier des menaces réelles (Phishing, Malwares, Trafic réseau suspect).
 - Appliquer les méthodologies de réponse à incident et documenter les investigations.
 - Exploiter les outils standards de l'industrie (Wireshark, SIEM, Sandbox, OSINT).
@@ -10,7 +10,7 @@ Ce dépôt documente un sprint intensif de 10 jours visant à démontrer mes com
 
 ---
 
-## 📂 Projets Réalisés
+##  Projets Réalisés
 
 ### 1. Analyse de Phishing & Extraction d'IOCs (En cours)
 **Objectif :** Décortiquer des campagnes de phishing réelles en toute sécurité.
@@ -44,7 +44,7 @@ Ce dépôt documente un sprint intensif de 10 jours visant à démontrer mes com
 
 ---
 
-## 🛠️ Boîte à Outils & Frameworks
+##  Boîte à Outils & Frameworks
 - **Analyse & Investigation :** Wireshark, NetworkMiner, Sysmon.
 - **Threat Intelligence & OSINT :** VirusTotal, urlscan.io, PhishTank, ANY.RUN.
 - **SIEM & Log Management :** Splunk / Elastic Stack.
@@ -52,7 +52,7 @@ Ce dépôt documente un sprint intensif de 10 jours visant à démontrer mes com
 
 ---
 
-## 👤 Auteur
+##  Auteur
 **Ilyass Jenjare**
 - **LinkedIn :** https://www.linkedin.com/in/ilyass-jenjare
 - **Contact :** Ilyas.Jenjare@Usherbrooke.ca
