@@ -50,4 +50,3 @@ Investigation d'un e-mail suspect signalé par un commercial de Greenholt PLC : 
 
 Analyse d'en-têtes e-mail · SPF / DMARC · Attribution d'IP · Analyse de pièce jointe · VirusTotal · Extraction d'IOC · MITRE ATT&CK · Rédaction de rapport d'incident
 
-> ⚠️ Projet réalisé dans un laboratoire isolé TryHackMe. Les IOC sont fournis à titre pédagogique : ne jamais exécuter les fichiers associés.
