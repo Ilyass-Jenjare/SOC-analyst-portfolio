@@ -1,0 +1,53 @@
+# 01 - Phishing Analysis : *The Greenholt Phish*
+
+![Plateforme](https://img.shields.io/badge/Plateforme-TryHackMe-red)
+![Parcours](https://img.shields.io/badge/Parcours-SOC%20Level%201-blue)
+![Verdict](https://img.shields.io/badge/Verdict-MALVEILLANT-critical)
+
+Investigation d'un e-mail suspect signalé par un commercial de Greenholt PLC : analyse des en-têtes, vérification SPF/DMARC, attribution de l'IP source et analyse de la pièce jointe.
+
+📄 **[Lire le rapport complet (PDF)](report.pdf)**
+
+## Verdict
+
+**Phishing avec pièce jointe malveillante.** Confiance : élevée.
+
+## Constats clés
+
+| Constat | Détail |
+|---|---|
+| Usurpation de domaine | `Received-SPF: fail` : l'IP d'envoi n'est pas autorisée pour `mutawamarine.com` |
+| Reply-To détourné | Expéditeur `info@mutawamarine.com`, réponses vers `info.mutawamarine@mail.com` |
+| Infrastructure | IP `192.119.71.157` (Dallas, US), hébergeur mutualisé (HostPapa selon l'outil de recherche) |
+| Pièce jointe piégée | `SWT_#09674321____PDF__.CAB` est en réalité une **archive RAR** contenant un exécutable Win32 (`.com`) |
+| Réputation | **49/62** détections (archive), **58/71** (exécutable) sur VirusTotal |
+| Contexte | Demande de virement inattendue (fraude de type fausse facture / BEC) |
+
+**SHA-256 de la pièce jointe :** `2e91c533615a9bb8929ac4bb76707b2444597ce063d84a4b33525e25074fff3f`
+
+## Méthodologie
+
+1. Lecture des en-têtes bruts (Thunderbird) : Return-Path, Reply-To, chaîne `Received`
+2. Vérification de l'authentification : `dig txt` pour SPF et DMARC
+3. Attribution de l'IP d'origine (géolocalisation, ASN, propriétaire)
+4. Hash de la pièce jointe (`sha256sum`) puis analyse VirusTotal (type réel, fichiers contenus)
+5. Extraction des IOC et cartographie MITRE ATT&CK
+
+## MITRE ATT&CK
+
+`T1566.001` Spearphishing Attachment · `T1204.002` User Execution · `T1036.007` Double File Extension · `T1656` Impersonation
+
+## Structure du dossier
+
+```
+01_Phishing_Analysis/
+├── README.md        résumé du projet
+├── report.pdf       rapport d'investigation complet
+└── screenshots/     preuves (en-têtes, SPF, DMARC, IP, hash, VirusTotal)
+```
+
+## Compétences
+
+Analyse d'en-têtes e-mail · SPF / DMARC · Attribution d'IP · Analyse de pièce jointe · VirusTotal · Extraction d'IOC · MITRE ATT&CK · Rédaction de rapport d'incident
+
+> ⚠️ Projet réalisé dans un laboratoire isolé TryHackMe. Les IOC sont fournis à titre pédagogique : ne jamais exécuter les fichiers associés.
