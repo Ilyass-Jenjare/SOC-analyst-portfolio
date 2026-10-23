@@ -18,25 +18,25 @@ Ce dépôt documente un sprint intensif de 10 jours visant à démontrer mes com
 - **Outils :** MXToolbox, VirusTotal, urlscan.io, ANY.RUN.
 - **Livrables :** Rapport d'analyse, liste d'IOCs (CSV), mapping MITRE ATT&CK.
 
-### 2. Investigation Réseau & Analyse de PCAP
+### 2. Investigation Réseau & Analyse de PCAP ( boogeyman1 )
 **Objectif :** Identifier une intrusion et le comportement d'un malware à partir d'une capture réseau.
 - **Compétences :** Filtrage de paquets, extraction d'objets HTTP, identification de trafic C2 (Beaconing), exfiltration.
 - **Outils :** Wireshark, NetworkMiner.
 - **Livrables :** Timeline de l'attaque, récit d'investigation, extraction de payloads.
 
-### 3. Réponse à Incident
+### 3. Réponse à Incident ( plannifié )
 **Objectif :** Résoudre un scénario complet d'incident et rédiger un rapport formel.
 - **Compétences :** Triage, confinement, éradication, application des frameworks d'intervention.
 - **Cadre :** SANS PICERL / NIST SP 800-61.
 - **Livrables :** Rapport d'incident complet incluant les leçons apprises et les recommandations de durcissement.
 
-### 4. Rapport de Cyber Threat Intelligence (CTI)
+### 4. Rapport de Cyber Threat Intelligence (CTI) ( plannifié )
 **Objectif :** Profiler un acteur de la menace (ex. Scattered Spider) et analyser ses TTPs.
 - **Compétences :** Recherche OSINT, modélisation des menaces, création de matrices.
 - **Outils :** MITRE ATT&CK Navigator.
 - **Livrables :** Brief exécutif (BLUF), matrice tactique, recommandations de détection.
 
-### 5. Laboratoire Home SIEM & Règles de Détection
+### 5. Laboratoire Home SIEM & Règles de Détection ( en cours )
 **Objectif :** Déployer une infrastructure de journalisation et créer des alertes personnalisées.
 - **Compétences :** Déploiement de serveurs, centralisation de logs, requêtes de détection (SPL/KQL/Sigma).
 - **Outils :** Splunk Enterprise / Elastic Stack, Sysmon, Windows/Linux VM, Atomic Red Team.
