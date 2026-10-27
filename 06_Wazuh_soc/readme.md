@@ -220,3 +220,4 @@ Chaque scénario d'attaque suit le même cycle :
 ---
 
 *Document évolutif : à compléter au fil du projet avec les résultats réels, captures d'écran de preuve et retours d'expérience.*
+documentation : https://app.notion.com/p/Wazuh-SOC-406baa6620a2809abda7efe0859e6758?source=copy_link
