@@ -2,7 +2,7 @@
 
 Ce dépôt documente un sprint intensif de 10 jours visant à démontrer mes compétences opérationnelles (Blue Team) pour des rôles d'Analyste SOC et de spécialiste en cybersécurité. Chaque projet simule des tâches réelles d'investigation, de triage et de réponse aux incidents, en s'appuyant sur des standards de l'industrie (MITRE ATT&CK, NIST, SANS).
 
-##  Objectifs du Portfolio
+## Objectifs du Portfolio
 - Analyser et qualifier des menaces réelles (Phishing, Malwares, Trafic réseau suspect).
 - Appliquer les méthodologies de réponse à incident et documenter les investigations.
 - Exploiter les outils standards de l'industrie (Wireshark, SIEM, Sandbox, OSINT).
@@ -10,9 +10,9 @@ Ce dépôt documente un sprint intensif de 10 jours visant à démontrer mes com
 
 ---
 
-##  Projets Réalisés
+## Projets Réalisés
 
-### 1. Analyse de Phishing 
+### 1. Analyse de Phishing
 **Objectif :** Décortiquer des campagnes de phishing réelles en toute sécurité.
 - **Compétences :** Analyse d'en-têtes SMTP (SPF/DKIM/DMARC), extraction d'URLs/fichiers sans détonation, recherche OSINT.
 - **Outils :** MXToolbox, VirusTotal, urlscan.io, ANY.RUN.
@@ -42,17 +42,24 @@ Ce dépôt documente un sprint intensif de 10 jours visant à démontrer mes com
 - **Outils :** Splunk Enterprise / Elastic Stack, Sysmon, Windows/Linux VM, Atomic Red Team.
 - **Livrables :** Schéma d'architecture, write-up d'investigation d'une alerte, fichiers de règles Sigma/SPL.
 
+### 6. SOC Lab — Détection & Validation avec Wazuh ( en cours )
+**Objectif :** Déployer un SOC miniature basé sur Wazuh (cible Linux), émuler des attaques réelles et développer des règles de détection personnalisées pour mesurer et améliorer la couverture de détection.
+- **Compétences :** Administration Wazuh (Manager/Indexer/Dashboard), analyse de logs Linux (auth.log, logs Apache), détection réseau (NIDS), écriture de règles/décodeurs custom, cartographie MITRE ATT&CK, Active Response.
+- **Outils :** Wazuh, Suricata, DVWA, OpenSSH, Apache, Kali Linux (nmap, Hydra, sqlmap), MITRE ATT&CK.
+- **Livrables :** Schéma d'architecture, règles de détection custom documentées, matrice de couverture MITRE ATT&CK, rapports d'incident par scénario d'attaque.
+
 ---
 
-##  Boîte à Outils & Frameworks
+## Boîte à Outils & Frameworks
 - **Analyse & Investigation :** Wireshark, NetworkMiner, Sysmon.
 - **Threat Intelligence & OSINT :** VirusTotal, urlscan.io, PhishTank, ANY.RUN.
-- **SIEM & Log Management :** Splunk / Elastic Stack.
+- **SIEM & Log Management :** Splunk / Elastic Stack, Wazuh.
+- **Détection réseau & Tests d'intrusion :** Suricata, Kali Linux (nmap, Hydra, sqlmap), DVWA.
 - **Cadres de Référence :** MITRE ATT&CK, NIST SP 800-61, SANS Incident Handling.
 
 ---
 
-##  Auteur
+## Auteur
 **Ilyass Jenjare**
 - **LinkedIn :** https://www.linkedin.com/in/ilyass-jenjare
 - **Contact :** Ilyas.Jenjare@Usherbrooke.ca
