@@ -219,5 +219,18 @@ Chaque scénario d'attaque suit le même cycle :
 
 ---
 
-*Document évolutif : à compléter au fil du projet avec les résultats réels, captures d'écran de preuve et retours d'expérience.*
-documentation : https://app.notion.com/p/Wazuh-SOC-406baa6620a2809abda7efe0859e6758?source=copy_link
+**Document évolutif :** à compléter au fil du projet avec les résultats réels, les captures d’écran de preuve et les retours d’expérience.
+
+### Documentation du projet
+
+- **01 — Wazuh SOC | SIEM et supervision de sécurité**  
+  https://scarce-lead-70d.notion.site/Wazuh-SOC-406baa6620a2809abda7efe0859e6758
+
+- **02 — Kali Linux | Machine de test**  
+  https://scarce-lead-70d.notion.site/Kali-Linux-406baa6620a28093bfd1c979a43e9c8d
+
+- **03 — Ubuntu Server | Machine cible**  
+  https://scarce-lead-70d.notion.site/Victime-Ubuntu-Server-406baa6620a2804f84a1f7e15e288887
+
+- **04 — Intégration et validation | Tests du laboratoire**  
+  https://scarce-lead-70d.notion.site/Int-gration-et-Validation-406baa6620a28077aaefe487b2b08b36
