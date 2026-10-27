@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-10-27T00:00:00.000Z" agent="Claude" version="24.0.0" type="device">
+  <diagram name="Architecture SOC Lab Wazuh" id="soc-lab-wazuh-arch">
+    <mxGraphModel dx="1400" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Conteneur réseau isolé -->
+        <mxCell id="net" value="Réseau host-only isolé — 192.168.56.0/24" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=15;spacingTop=10;fillColor=#F5F5F5;strokeColor=#666666;dashed=1;fontSize=14;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="60" y="60" width="900" height="480" as="geometry" />
+        </mxCell>
+
+        <!-- Kali Linux -->
+        <mxCell id="kali" value="Kali Linux&#10;(CLI only)&#10;192.168.56.200&#10;&#10;nmap, hydra,&#10;sqlmap, curl" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2D2D2D;strokeColor=#000000;fontColor=#FFFFFF;fontSize=12;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="110" y="200" width="200" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- Ubuntu Server -->
+        <mxCell id="ubuntu" value="Ubuntu Server&#10;(CLI only)&#10;192.168.56.150&#10;&#10;SSH, Apache + DVWA,&#10;Agent Wazuh,&#10;Suricata" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8580C;strokeColor=#A33600;fontColor=#FFFFFF;fontSize=12;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="480" y="200" width="220" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- Wazuh Server -->
+        <mxCell id="wazuh" value="Wazuh Server (all-in-one)&#10;192.168.56.100&#10;&#10;Manager + Indexer + Dashboard&#10;&#10;(dashboard consulté depuis&#10;le navigateur de l'hôte —&#10;pas de GUI sur la VM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0066CC;strokeColor=#003D7A;fontColor=#FFFFFF;fontSize=12;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="430" y="400" width="320" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Flèche Kali -> Ubuntu -->
+        <mxCell id="edge1" value="attaques CLI&#10;(nmap, hydra, sqlmap)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;elbow=vertical;startArrow=none;strokeColor=#CC0000;fontColor=#CC0000;fontSize=11;fontStyle=1;align=center;verticalAlign=top;" edge="1" parent="1" source="kali" target="ubuntu">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Flèche Ubuntu -> Wazuh -->
+        <mxCell id="edge2" value="logs&#10;(auth, Apache, Suricata)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;elbow=vertical;startArrow=none;strokeColor=#0066CC;fontColor=#0066CC;fontSize=11;fontStyle=1;align=right;verticalAlign=middle;" edge="1" parent="1" source="ubuntu" target="wazuh">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Flèche hôte -> Wazuh dashboard -->
+        <mxCell id="host" value="Navigateur de l'hôte&#10;(Katana B13.7)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D9EAD3;strokeColor=#38761D;fontColor=#333333;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="580" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge3" value="https://192.168.56.100" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;startArrow=none;strokeColor=#38761D;fontColor=#38761D;fontSize=11;dashed=1;align=center;" edge="1" parent="1" source="host" target="wazuh">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Titre -->
+        <mxCell id="title" value="SOC Lab Wazuh — Architecture V1 (Linux, CLI only)" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#1A1A1A;" vertex="1" parent="1">
+          <mxGeometry x="60" y="10" width="900" height="30" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
