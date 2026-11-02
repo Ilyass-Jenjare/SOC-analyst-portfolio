@@ -97,11 +97,9 @@ Flux de données : chaque attaque lancée depuis Kali touche la machine Victime 
 
 > **Note de transparence :** l'adressage IP du lab a évolué au fil des sessions de travail, le réseau NAT de VMware Workstation ayant été réattribué à plusieurs reprises entre les phases de déploiement. Le tableau ci-dessous reflète les trois plages successivement utilisées. Cette dérive d'adressage est elle-même documentée comme point de vigilance en [section 08](#08-limites-et-améliorations).
 
-| Phase | Plage NAT | Wazuh Manager | Victime | Kali |
-|---|---|---|---|---|
-| Cahier des charges initial | `192.168.56.0/24` | `192.168.56.100` | `192.168.56.150` | `192.168.56.200` |
-| Déploiement M2/M3 (Kali + Victime) | `192.168.48.0/24` | `192.168.48.133` | `192.168.48.150` | `192.168.48.200` |
-| Campagne de pentest (rapport final) | `192.168.111.0/24` | `192.168.111.x` | `192.168.111.150` | `192.168.111.x` |
+ Plage NAT | Wazuh Manager | Victime | Kali |
+|---|---|---|---|
+| `192.168.56.0/24` | `192.168.56.100` | `192.168.56.150` | `192.168.56.200` |
 
 Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration Netplan de chaque VM et la garder stable sur toute la durée du projet évite cette dérive.
 
