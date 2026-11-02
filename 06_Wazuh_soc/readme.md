@@ -363,12 +363,15 @@ Plutôt qu'une simple extension de la V1, la V2 introduit une segmentation rése
   IP : 172.16.10.20                     IP : 10.0.10.30
 
 ```
-Principes de cette évolution
-FortiGate comme point de passage obligé entre Internet, la DMZ et le LAN, apportant une inspection de trafic (filtrage, NAT, politiques inter-zones) en amont de ce que Wazuh/Suricata observent côté hôte — complète la limite HIDS identifiée en V1.
-Séparation DMZ / LAN : le serveur web public (cible exploitable, équivalent du rôle DVWA de la V1) est isolé en DMZ, tandis que les postes clients (Linux et Windows) rejoignent un réseau interne distinct — un attaquant qui compromet le serveur web ne se retrouve plus directement sur le même segment que les postes de l'entreprise, corrigeant la limite de colocalisation identifiée en V1.
-Extension à un client Windows, hors périmètre de la V1, pour élargir la couverture de détection au-delà des seules machines Linux.
-Wazuh reste le SIEM central, mais collecte désormais des logs et événements depuis des zones réseau cloisonnées par le FortiGate, ce qui permet de tester des scénarios de mouvement latéral (DMZ → LAN) et de valider que la segmentation elle-même est détectable et traçable.
-Politiques FortiGate comme nouvelle surface de detection engineering : au même titre que les règles Wazuh custom en V1, les règles de pare-feu inter-zones devront être testées, affinées et documentées suite aux campagnes d'attaque.
+
+### Principes de cette évolution
+
+1. **FortiGate comme point de passage obligé** entre Internet, la DMZ et le LAN, apportant une inspection de trafic (filtrage, NAT, politiques inter-zones) en amont de ce que Wazuh/Suricata observent côté hôte — complète la limite HIDS identifiée en V1.
+2. **Séparation DMZ / LAN** : le serveur web public (cible exploitable, équivalent du rôle DVWA de la V1) est isolé en DMZ, tandis que les postes clients (Linux et Windows) rejoignent un réseau interne distinct — un attaquant qui compromet le serveur web ne se retrouve plus directement sur le même segment que les postes de l'entreprise, corrigeant la limite de colocalisation identifiée en V1.
+3. **Extension à un client Windows**, hors périmètre de la V1, pour élargir la couverture de détection au-delà des seules machines Linux.
+4. **Wazuh reste le SIEM central**, mais collecte désormais des logs et événements depuis des zones réseau cloisonnées par le FortiGate, ce qui permet de tester des scénarios de mouvement latéral (DMZ → LAN) et de valider que la segmentation elle-même est détectable et traçable.
+5. **Politiques FortiGate comme nouvelle surface de detection engineering** : au même titre que les règles Wazuh custom en V1, les règles de pare-feu inter-zones devront être testées, affinées et documentées suite aux campagnes d'attaque.
+
 ---
 
 ## 09. Conclusion
