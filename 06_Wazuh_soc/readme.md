@@ -81,23 +81,26 @@ Projet personnel réalisé dans le cadre d'un encadrement en entreprise, visant 
     RÉSEAU LOCAL UNIQUE : VMware NAT (ex: VMnet8 - 192.168.x.0/24)
     Passerelle NAT vers Internet incluse
 =====================================================================
-            │                   │                   │
-            │                   │                   │
-    +-------▼-------+   +-------▼-------+   +-------▼-------+
+
+    +---------------+   +---------------+   +---------------+
     | Windows Hôte  |   | Serveur Linux |   |  Kali Linux   |
     | (PC Physique) |   |   (Victime)   |   |  (Attaquant)  |
     | Agent Wazuh   |   |  Agent Wazuh  |   |               |
     +-------+-------+   +-------+-------+   +-------+-------+
-            │                   │                   │
-            │ (Logs TCP/1514)   │ (Logs TCP/1514)   │ (Attaques /
-            │                   │                   │  Scans)
-            └─────────┐ ┌───────┘                   │
-                      │ │                           │
-                      ▼ ▼                           ▼
-                +-------------+-----------------------------+
-                | Serveur Wazuh (Manager / SIEM)          |
-                | Centralise les alertes de sécurité      |
-                +-----------------------------------------+
+            │   ▲               │   ▲               │
+            │   │               │   │               │
+ (Logs 1514)│   │    (Logs 1514)│   │               │
+            │   │               │   │               │
+            │   └───────────────────┴───────────────┘ 
+            │        (Attaques / Scans / Exploits)
+            │                   │
+            └─────────┐ ┌───────┘
+                      │ │
+                      ▼ ▼
+        +-----------------------------------------+
+        | Serveur Wazuh (Manager / SIEM)          |
+        | Centralise les alertes de sécurité      |
+        +-----------------------------------------+
 ```
 ### 3.2 Choix "CLI only"
 - Toutes les VM (Kali, Ubuntu Server, Wazuh) sont installées en mode **serveur / sans interface graphique**.
