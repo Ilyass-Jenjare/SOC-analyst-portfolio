@@ -56,27 +56,6 @@ Projet personnel réalisé dans le cadre d'un encadrement en entreprise, visant 
 ### 3.1 Schéma
 
 ```
-                 Réseau host-only isolé (ex: 192.168.56.0/24)
- ┌──────────────────────────────────────────────────────────────────┐
- │                                                                    │
- │   ┌───────────────┐      attaques CLI      ┌────────────────────┐ │
- │   │ Kali Linux     │ ─────────────────────► │ Ubuntu Server      │ │
- │   │ (CLI only)     │                        │ (CLI only)         │ │
- │   │ nmap, hydra,   │                        │ SSH, Apache+DVWA,  │ │
- │   │ sqlmap, curl   │                        │ agent Wazuh,       │ │
- │   │                │                        │ Suricata           │ │
- │   └───────────────┘                        └──────────┬──────────┘ │
- │                                                         │ logs      │
- │                                                         ▼           │
- │                              ┌───────────────────────────────────┐ │
- │                              │ Wazuh Server (all-in-one)         │ │
- │                              │ Manager + Indexer + Dashboard     │ │
- │                              │ (dashboard consulté via navigateur│ │
- │                              │  de l'hôte, pas de GUI sur la VM) │ │
- │                              └───────────────────────────────────┘ │
- └──────────────────────────────────────────────────────────────────┘
-```
-```
 =====================================================================
     RÉSEAU LOCAL UNIQUE : VMware NAT (ex: VMnet8 - 192.168.x.0/24)
     Passerelle NAT vers Internet incluse
