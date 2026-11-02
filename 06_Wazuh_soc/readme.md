@@ -343,15 +343,32 @@ Module Wazuh → **Security Configuration Assessment** : pourcentage de conformi
 | Dérive de périmètre (vouloir tout faire en V1) | Projet jamais terminé | Respecter strictement le hors-périmètre défini en section 01 |
 | Oubli de l'isolation réseau | Risque légal/éthique en cas de fuite d'attaque | Vérifier la configuration réseau avant chaque session d'attaque |
 
-### Pistes d'amélioration pour une V2
+Plutôt qu'une simple extension de la V1, la V2 introduit une segmentation réseau réelle autour d'un firewall nouvelle génération (FortiGate), rapprochant le lab d'une architecture d'entreprise type DMZ/LAN :
 
-1. Activer **auditd** sur la Victime pour tracer l'exécution de commandes par le processus web (amélioration directe de la détection Command Injection).
-2. Finaliser l'**Active Response** (blocage automatique après seuil de brute force).
-3. Tester les scénarios DVWA aux niveaux `medium` et `high` pour mesurer la résistance des règles face à des payloads obfusqués.
-4. Étendre la cible Windows (hors périmètre V1, déjà évoquée comme agent potentiel).
-5. Ajouter un second capteur réseau indépendant de la machine cible pour corriger la limite de colocalisation Suricata/agent.
-6. Automatiser le déploiement du lab via scripts versionnés pour en garantir la reproductibilité totale.
+```
+                      [ INTERNET ]
+                           |
+                   (VMnet8 - NAT)
+                   Port 1 (WAN)
+                 +-------------------+
+                 |   FORTIGATE VM    |  (L'agent de sécurité)
+                 +-------------------+
+                /                     \
+  DMZ (Port 3) /                       \ LAN (Port 2)
+  VMnet3 (Host-Only)                   VMnet2 (Host-Only)
+  Passerelle : 172.16.10.254           Passerelle : 10.0.10.254
+              |                                     |
+  [ Serveur Web (Ubuntu) ]              [ Client Linux ] et [ Client Windows ]
+  Site accessible au public             Postes de l'entreprise
+  IP : 172.16.10.20                     IP : 10.0.10.30
 
+```
+Principes de cette évolution
+FortiGate comme point de passage obligé entre Internet, la DMZ et le LAN, apportant une inspection de trafic (filtrage, NAT, politiques inter-zones) en amont de ce que Wazuh/Suricata observent côté hôte — complète la limite HIDS identifiée en V1.
+Séparation DMZ / LAN : le serveur web public (cible exploitable, équivalent du rôle DVWA de la V1) est isolé en DMZ, tandis que les postes clients (Linux et Windows) rejoignent un réseau interne distinct — un attaquant qui compromet le serveur web ne se retrouve plus directement sur le même segment que les postes de l'entreprise, corrigeant la limite de colocalisation identifiée en V1.
+Extension à un client Windows, hors périmètre de la V1, pour élargir la couverture de détection au-delà des seules machines Linux.
+Wazuh reste le SIEM central, mais collecte désormais des logs et événements depuis des zones réseau cloisonnées par le FortiGate, ce qui permet de tester des scénarios de mouvement latéral (DMZ → LAN) et de valider que la segmentation elle-même est détectable et traçable.
+Politiques FortiGate comme nouvelle surface de detection engineering : au même titre que les règles Wazuh custom en V1, les règles de pare-feu inter-zones devront être testées, affinées et documentées suite aux campagnes d'attaque.
 ---
 
 ## 09. Conclusion
