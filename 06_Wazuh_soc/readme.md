@@ -346,21 +346,23 @@ Module Wazuh → **Security Configuration Assessment** : pourcentage de conformi
 Plutôt qu'une simple extension de la V1, la V2 introduit une segmentation réseau réelle autour d'un firewall nouvelle génération (FortiGate), rapprochant le lab d'une architecture d'entreprise type DMZ/LAN :
 
 ```
-                      [ INTERNET ]
-                           |
-                   (VMnet8 - NAT)
-                   Port 1 (WAN)
-                 +-------------------+
-                 |   FORTIGATE VM    |  (L'agent de sécurité)
-                 +-------------------+
-                /                     \
-  DMZ (Port 3) /                       \ LAN (Port 2)
-  VMnet3 (Host-Only)                   VMnet2 (Host-Only)
-  Passerelle : 172.16.10.254           Passerelle : 10.0.10.254
-              |                                     |
-  [ Serveur Web (Ubuntu) ]              [ Client Linux ] et [ Client Windows ]
-  Site accessible au public             Postes de l'entreprise
-  IP : 172.16.10.20                     IP : 10.0.10.30
+                       [ INTERNET ]
+                            |
+                     (VMnet8 - NAT)
+                      Port 1 (WAN)
+                    +-------------------+
+                    |   FORTIGATE VM    |  (L'agent de sécurité)
+                    +-------------------+
+                   /                     \
+     DMZ (Port 3) /                       \ LAN (Port 2)
+     VMnet3 (Host-Only)                   VMnet2 (Host-Only)
+     Passerelle : 172.16.10.254           Passerelle : 10.0.10.254
+                 |                                      |
+                 |                        +-------------+-------------+
+     [ Serveur Web (Ubuntu) ]             |                           |
+     Site accessible au public     [ Client Linux ]          [ Client Windows ]
+     IP : 172.16.10.20             Poste de l'entreprise     Poste de l'entreprise
+                                   IP : 10.0.10.30           IP : 10.0.10.40
 
 ```
 
