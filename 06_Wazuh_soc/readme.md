@@ -28,7 +28,7 @@
 
 ### Contexte
 
-Ce projet a été réalisé dans le cadre d'un encadrement en entreprise, avec pour objectif de monter en compétences en détection d'intrusion (**Blue Team**) et de valider cette détection par des attaques contrôlées (**Purple Team**). L'environnement est volontairement limité à des machines Linux en ligne de commande (**CLI only**, sans interface graphique) afin de réduire la consommation de ressources sur un laptop de 16 Go de RAM (Katana B13.7).
+Ce projet a été réalisé dans le cadre d'un encadrement en entreprise, avec pour objectif de monter en compétences en détection d'intrusion (**Blue Team**) et de valider cette détection par des attaques contrôlées (**Purple Team**).
 
 ### Objectifs
 
