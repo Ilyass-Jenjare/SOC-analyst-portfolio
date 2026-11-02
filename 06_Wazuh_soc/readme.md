@@ -56,6 +56,14 @@ Ce projet a été réalisé dans le cadre d'un encadrement en entreprise, avec p
 | Détection réseau via Suricata (NIDS) | EDR commercial tiers |
 | FIM, SCA, Active Response de base | Threat Intel feeds externes payants |
 
+### Contraintes du projet
+
+| Type | Détail |
+|---|---|
+| Matérielle | Laptop 16 Go RAM, hyperviseur VMware Workstation Pro, pas d'interface graphique sur les VM pour limiter la RAM |
+| Sécurité | Lab totalement isolé du réseau domestique (réseau NAT/host-only interne à l'hyperviseur), aucune attaque ne doit sortir du périmètre, identifiants fictifs documentés comme tels |
+| Temps | ~3 semaines, en soirs/week-ends, en parallèle d'une activité encadrée en entreprise |
+
 ---
 
 ## 02. Architecture
@@ -97,11 +105,13 @@ Flux de données : chaque attaque lancée depuis Kali touche la machine Victime 
 
 > **Note de transparence :** l'adressage IP du lab a évolué au fil des sessions de travail, le réseau NAT de VMware Workstation ayant été réattribué à plusieurs reprises entre les phases de déploiement. Le tableau ci-dessous reflète les trois plages successivement utilisées. Cette dérive d'adressage est elle-même documentée comme point de vigilance en [section 08](#08-limites-et-améliorations).
 
- Plage NAT | Wazuh Manager | Victime | Kali |
-|---|---|---|---|
-| `192.168.56.0/24` | `192.168.56.100` | `192.168.56.150` | `192.168.56.200` |
+| Phase | Plage NAT | Wazuh Manager | Victime | Kali |
+|---|---|---|---|---|
+| Cahier des charges initial | `192.168.56.0/24` | `192.168.56.100` | `192.168.56.150` | `192.168.56.200` |
+| Déploiement M2/M3 (Kali + Victime) | `192.168.48.0/24` | `192.168.48.133` | `192.168.48.150` | `192.168.48.200` |
+| Campagne de pentest (rapport final) | `192.168.111.0/24` | `192.168.111.x` | `192.168.111.150` | `192.168.111.x` |
 
-Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration Netplan de chaque VM et la garder stable sur toute la durée du projet évite cette dérive.
+Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration réseau de chaque VM et la garder stable sur toute la durée du projet évite cette dérive.
 
 ---
 
@@ -127,7 +137,7 @@ Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration Ne
 | OpenSSH Server | M3 | Service exposé, cible de brute force |
 | Apache2 + PHP + MariaDB | M3 | Serveur web applicatif |
 | DVWA | M3 | Application web volontairement vulnérable |
-| Suricata | M3 | Détection réseau (NIDS), écrit dans `/var/log/suricata/eve.json` |
+| Suricata | M3 | Détection réseau (NIDS), écrit dans `eve.json` |
 | nmap, hydra, sqlmap, curl, netcat, Wireshark | M2 | Arsenal offensif CLI |
 
 ### Gestion des ressources
@@ -140,288 +150,47 @@ Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration Ne
 
 ## 04. Implémentation
 
-Cette section documente les étapes réellement exécutées pour déployer chaque brique du lab, avec les commandes utilisées.
+Cette section résume, machine par machine, ce qui a été déployé et pourquoi. **Le détail pas-à-pas (commandes exactes, fichiers de configuration, captures de validation) est tenu dans les pages Notion du projet**, référencées en [section 10](#10-références), afin d'éviter toute redondance avec ce README.
 
 ### 4.1 Machine 1 — Serveur SIEM Wazuh
 
-**Étape 1 — Déploiement Ubuntu Server et réseau statique**
+La VM a été installée en Ubuntu Server minimal avec OpenSSH activé dès l'installeur, puis dotée d'une adresse IP statique pour garantir que les agents et les attaquants pointent toujours vers la même adresse sans dépendre d'un bail DHCP.
 
-VM créée avec 4 Go RAM, 2 vCPU, 40 Go disque, réseau NAT ; installation Ubuntu Server minimale avec l'option *Install OpenSSH server* activée dès l'installeur pour permettre l'administration distante immédiate.
+La stack Wazuh (Manager, Indexer, Dashboard) a été déployée en mode **all-in-one** via le script d'installation assistée officiel, qui gère automatiquement les certificats TLS entre les trois composants. Les identifiants administrateur générés à l'issue de l'installation sont conservés dans un gestionnaire de mots de passe, jamais commités sur le dépôt.
 
-Configuration Netplan (`/etc/netplan/...`) :
+Un premier niveau de durcissement a ensuite été appliqué via un pare-feu applicatif (UFW), n'autorisant que les ports strictement nécessaires : SSH, HTTPS pour le dashboard, et les ports d'enrôlement/transmission des agents. Un scan de validation depuis Kali confirme qu'aucun autre port n'est exposé.
 
-```yaml
-network:
-  version: 2
-  ethernets:
-    ens33:
-      dhcp4: no
-      addresses: [192.168.56.100/24]
-      gateway4: 192.168.56.2
-      nameservers:
-        addresses: [8.8.8.8, 1.1.1.1]
-```
-
-```bash
-sudo netplan apply
-ip -br a show ens33
-```
-
-Vérifications :
-
-```bash
-ping -c 3 192.168.56.1      # passerelle
-ping -c 3 google.com        # accès Internet
-```
-
-**Critère de validation :** SSH accessible depuis l'hôte (`ssh wazuh@<ip>`), IP statique persistante après redémarrage.
-
-**Étape 2 — Installation de Wazuh (Manager + Indexer + Dashboard)**
-
-Déploiement en mode **all-in-one** via le script d'installation assistée officiel :
-
-```bash
-# Mise à jour du système
-sudo apt update && sudo apt upgrade -y
-
-# Téléchargement du script d'installation assistée
-curl -sO https://packages.wazuh.com/4.9/wazuh-install.sh
-
-# Installation complète (Indexer + Manager + Dashboard + certificats TLS)
-sudo bash wazuh-install.sh -a
-
-# Récupération du mot de passe admin généré
-sudo tar -O -xvf wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt | grep -A1 "'admin'"
-```
-
-Vérification des trois services :
-
-```bash
-sudo systemctl status wazuh-manager
-sudo systemctl status wazuh-indexer
-sudo systemctl status wazuh-dashboard
-sudo ss -tulnp | grep 443
-```
-
-**Résultat obtenu** (extrait du journal d'installation) :
-
-```
-INFO: --- Summary ---
-INFO: You can access the web interface https://<wazuh-dashboard-ip>:443
-User: admin
-Password: <généré automatiquement, stocké en gestionnaire de mots de passe>
-INFO: Installation finished.
-```
-
-> Le mot de passe admin généré n'est jamais commité sur GitHub ; il est conservé dans un gestionnaire de mots de passe.
-
-**Étape 3 — Durcissement de base**
-
-```bash
-sudo ufw allow 22/tcp
-sudo ufw allow 443/tcp
-sudo ufw allow 1514/tcp
-sudo ufw allow 1515/tcp
-sudo ufw enable
-sudo ufw status verbose
-```
-
-Validation croisée depuis Kali : un scan `nmap` sur l'IP du Manager doit confirmer que seuls ces quatre ports apparaissent ouverts.
+→ Détail des sous-étapes et commandes : page Notion **« Serveur SIEM (Wazuh) »**.
 
 ### 4.2 Machine 2 — Poste offensif Kali Linux
 
-Image officielle VMware importée, RAM bridée à 2 Go / 2 vCPU, réseau NAT sur le même sous-réseau que le reste du lab.
+Déployée à partir de l'image officielle VMware, la VM a été volontairement bridée en ressources (2 Go RAM, 2 vCPU) pour rester cohérente avec la contrainte des 16 Go du laptop hôte, et dotée d'une adresse IP statique afin que toutes les attaques simulées proviennent d'une source identifiable dans le SIEM.
 
-Adressage statique :
+La disponibilité de l'arsenal offensif (`nmap`, `hydra`, `sqlmap`, `netcat`, `Wireshark`) a été vérifiée, puis un script de reconnaissance/brute force réutilisable (`recon_and_bruteforce.sh`) a été préparé pour pouvoir rejouer le même scénario d'attaque de façon identique d'une session de test à l'autre — condition nécessaire pour comparer objectivement le taux de détection avant/après l'écriture de règles custom.
 
-```bash
-sudo nmcli connection modify "Wired connection 1" \
-  ipv4.method manual \
-  ipv4.addresses 192.168.48.200/24 \
-  ipv4.gateway 192.168.48.2 \
-  ipv4.dns "8.8.8.8,1.1.1.1"
-
-sudo nmcli connection down "Wired connection 1" && sudo nmcli connection up "Wired connection 1"
-```
-
-Vérification :
-
-```bash
-ip -br a show eth0
-ping -c 3 192.168.48.133   # Serveur SIEM
-```
-
-**Préparation de l'arsenal offensif** — vérification de la disponibilité des outils, et script de reconnaissance/brute force réutilisable :
-
-```bash
-which nmap hydra sqlmap nc wireshark curl
-mkdir -p ~/lab-attacks/pcaps ~/lab-attacks/scripts
-```
-
-`~/lab-attacks/scripts/recon_and_bruteforce.sh` :
-
-```bash
-#!/bin/bash
-TARGET="192.168.56.150"
-
-echo "[*] Phase 1 : Scan de ports Nmap (déclenche détection Suricata)..."
-nmap -sS -T4 -A -p 1-1000 $TARGET
-
-echo "[*] Phase 2 : Brute force SSH avec Hydra (déclenche détection Wazuh/auth.log)..."
-hydra -l victimuser -P ~/lab-attacks/short-pass.txt ssh://$TARGET -t 4
-```
-
-```bash
-chmod +x ~/lab-attacks/scripts/recon_and_bruteforce.sh
-```
+→ Détail des sous-étapes, script complet et wordlist : page Notion **« Kali Linux »**.
 
 ### 4.3 Machine 3 — Cible vulnérable (SSH + Web + agent)
 
-**Réseau statique `.150`** (même méthode Netplan qu'en 4.1), puis vérification de la joignabilité bidirectionnelle avec M1 et M2.
+Cette machine concentre les deux surfaces d'attaque du lab : un service SSH exposé (cible de brute force) et une application web volontairement vulnérable.
 
-**Installation d'Apache, PHP, MariaDB et déploiement de DVWA :**
+**Service web :** Apache, PHP et MariaDB ont été installés, puis DVWA a été cloné depuis le dépôt officiel et connecté à une base de données dédiée. Le niveau de sécurité de DVWA a été positionné à `low` pour les premiers tests. Les identifiants par défaut de DVWA sont explicitement documentés comme fictifs.
 
-```bash
-sudo apt install -y apache2 php php-mysqli php-gd libapache2-mod-php mariadb-server git
+**Détection réseau :** Suricata a été installé en complément des capacités HIDS de Wazuh, pour combler sa limite native de visibilité réseau (voir section 06). Il écrit ses alertes dans un fichier JSON, ensuite lu par l'agent Wazuh — validé par un scan de test générant une entrée correspondante.
 
-cd /var/www/html
-sudo git clone https://github.com/digininja/DVWA.git dvwa
-sudo chown -R www-data:www-data /var/www/html/dvwa
-sudo chmod -R 755 /var/www/html/dvwa
-```
+**Agent Wazuh :** installé et enrôlé auprès du Manager, avec ajout de la lecture du log Suricata comme source supplémentaire. Le module **FIM** (surveillance d'intégrité des fichiers) a été activé en temps réel sur le répertoire DVWA et sur `/etc`, et le module **SCA** (évaluation de la configuration de sécurité face au CIS Benchmark) a été activé avec un scan toutes les 12 heures. Un test manuel de dépôt de fichier a permis de valider le déclenchement d'une alerte FIM.
 
-Base de données dédiée :
+→ Détail des sous-étapes, fichiers `ossec.conf` et scripts : page Notion **« Victime (Ubuntu Server) »**.
 
-```bash
-sudo mysql -u root -e "
-CREATE DATABASE dvwa;
-CREATE USER 'dvwauser'@'localhost' IDENTIFIED BY 'P@ssw0rdDVWA';
-GRANT ALL PRIVILEGES ON dvwa.* TO 'dvwauser'@'localhost';
-FLUSH PRIVILEGES;"
-```
+### 4.4 Incidents de configuration rencontrés
 
-Configuration DVWA :
+Trois incidents réels ont été rencontrés pendant l'enrôlement de l'agent, conservés ici à titre de retour d'expérience plutôt que comme étapes de configuration :
 
-```bash
-cd /var/www/html/dvwa/config
-sudo cp config.inc.php.dist config.inc.php
-sudo sed -i "s/'db_user'     ] = '.*';/'db_user'     ] = 'dvwauser';/" config.inc.php
-sudo sed -i "s/'db_password' ] = '.*';/'db_password' ] = 'P@ssw0rdDVWA';/" config.inc.php
-sudo sed -i "s/'db_database' ] = '.*';/'db_database' ] = 'dvwa';/" config.inc.php
-sudo systemctl restart apache2
-```
+- **Erreur d'assignation de groupe** côté base de données interne de l'agent (`wazuh-db`), résolue par une correction des permissions et une réassignation manuelle de l'agent à son groupe.
+- **Saturation de l'espace disque** sur la VM Victime, résolue par un nettoyage des paquets, journaux et fichiers temporaires.
+- **Crash de l'API Wazuh** (`wazuh-apid` ne démarrait plus), causé par des processus zombies bloquant le port de l'API, résolu par un arrêt forcé puis un redémarrage propre du Manager.
 
-Vérification : `curl -I http://<ip-victime>/dvwa/login.php` doit retourner `HTTP 200`.
-
-> Identifiants DVWA par défaut (`admin` / `password`) explicitement fictifs — à changer si le lab est exposé au-delà d'une session de test locale.
-
-**Installation de Suricata (NIDS) :**
-
-```bash
-sudo apt install -y suricata
-sudo nano /etc/suricata/suricata.yaml
-```
-
-```yaml
-vars:
-  address-groups:
-    HOME_NET: "[192.168.48.0/24]"
-af-packet:
-  - interface: ens33
-```
-
-```bash
-sudo suricata-update
-sudo systemctl enable suricata
-sudo systemctl restart suricata
-```
-
-Suricata écrit ses alertes dans `/var/log/suricata/eve.json`, lu ensuite par l'agent Wazuh pour corréler les détections réseau avec les détections système. Validé par un scan `nmap -sS` de test depuis Kali générant une entrée dans `eve.json`.
-
-**Installation et enrôlement de l'agent Wazuh :**
-
-```bash
-curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | sudo gpg --no-default-keyring \
-  --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import
-sudo chmod 644 /usr/share/keyrings/wazuh.gpg
-echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" | \
-  sudo tee /etc/apt/sources.list.d/wazuh.list
-sudo apt update
-sudo WAZUH_MANAGER='192.168.48.133' apt install -y wazuh-agent
-```
-
-Ajout de la lecture du log Suricata dans `/var/ossec/etc/ossec.conf` :
-
-```xml
-<localfile>
-  <log_format>json</log_format>
-  <location>/var/log/suricata/eve.json</location>
-</localfile>
-```
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable wazuh-agent
-sudo systemctl start wazuh-agent
-```
-
-**Activation FIM et SCA** (bloc `<syscheck>` dans `ossec.conf`) :
-
-```xml
-<syscheck>
-  <directories check_all="yes" realtime="yes">/var/www/html/dvwa</directories>
-  <directories check_all="yes">/etc</directories>
-</syscheck>
-
-<sca>
-  <enabled>yes</enabled>
-  <scan_on_start>yes</scan_on_start>
-  <interval>12h</interval>
-</sca>
-```
-
-```bash
-sudo systemctl restart wazuh-agent
-```
-
-Test manuel de déclenchement FIM :
-
-```bash
-sudo touch /var/www/html/dvwa/hackable/uploads/test.php
-```
-
-### 4.4 Incidents de configuration rencontrés et résolutions
-
-Trois incidents réels rencontrés pendant l'enrôlement de l'agent, conservés ici à titre de retour d'expérience technique :
-
-**Erreur d'assignation de groupe (`wazuh-db`) :**
-
-```bash
-sudo chown -R wazuh:wazuh /var/ossec/queue/db/
-sudo chown -R wazuh:wazuh /var/ossec/var/multigroups/
-sudo /var/ossec/bin/agent_groups -a -i 002 -g default
-```
-
-**Espace disque saturé (100 % sur `/`) :**
-
-```bash
-sudo apt clean
-sudo apt autoremove -y
-sudo journalctl --vacuum-time=1d
-sudo rm -rf /var/ossec/tmp/*
-df -h /
-```
-
-**Crash de l'API Wazuh / processus zombies (`wazuh-apid did not start`) :**
-
-```bash
-sudo fuser -k 55000/tcp
-sudo pkill -f wazuh
-sudo rm -f /var/ossec/var/run/*.pid
-sudo systemctl start wazuh-manager
-sudo systemctl status wazuh-manager
-sudo /var/ossec/bin/agent_control -i 002
-```
+→ Commandes de résolution détaillées : page Notion **« Victime (Ubuntu Server) »**.
 
 ---
 
@@ -448,22 +217,20 @@ Chaque scénario suit le même cycle de detection engineering :
 
 ### Scénarios testés, mappés MITRE ATT&CK
 
-| # | Technique | Module DVWA / cible | MITRE ATT&CK | Outil / commande |
+| # | Technique | Module DVWA / cible | MITRE ATT&CK | Approche |
 |---|---|---|---|---|
-| 1 | Reconnaissance réseau | Hôte Victime | T1046 | `nmap -sS -sV -O -p- <ip>` |
-| 2 | Brute force SSH | Service OpenSSH | T1110.001 | `hydra -l victimuser -P wordlist.txt ssh://<ip>` |
-| 3 | Brute force applicatif | DVWA — Brute Force | T1110.001 | `hydra ... http-get-form "/dvwa/vulnerabilities/brute/..."` |
-| 4 | Injection SQL | DVWA — SQL Injection | T1190 | `sqlmap -u "http://<ip>/dvwa/vulnerabilities/sqli/?id=1" --batch --dbs` |
-| 5 | Command Injection | DVWA — Command Injection | T1059.004 / T1190 | Payloads `127.0.0.1 && id`, `; whoami`, `\| cat /etc/passwd` |
-| 6 | Cross-Site Scripting | DVWA — XSS (Reflected/Stored/DOM) | T1059.007 / T1189 | `<script>alert(document.cookie)</script>` |
-| 7 | Dépôt de webshell | DVWA — File Upload | T1505.003 / T1105 | Upload PHP minimal `system($_GET["cmd"])` |
-| 8 | Local File Inclusion | DVWA — File Inclusion | T1083 | `curl ".../fi/?page=../../../../etc/passwd"` |
+| 1 | Reconnaissance réseau | Hôte Victime | T1046 | Scan de ports et services (nmap) |
+| 2 | Brute force SSH | Service OpenSSH | T1110.001 | Dictionnaire de mots de passe courts |
+| 3 | Brute force applicatif | DVWA — Brute Force | T1110.001 | Formulaire web, détection d'échec de connexion |
+| 4 | Injection SQL | DVWA — SQL Injection | T1190 | Extraction de bases via sqlmap |
+| 5 | Command Injection | DVWA — Command Injection | T1059.004 / T1190 | Chaînage de commandes dans un champ IP |
+| 6 | Cross-Site Scripting | DVWA — XSS (Reflected/Stored/DOM) | T1059.007 / T1189 | Injection de payload JavaScript |
+| 7 | Dépôt de webshell | DVWA — File Upload | T1505.003 / T1105 | Upload d'un fichier PHP minimal |
+| 8 | Local File Inclusion | DVWA — File Inclusion | T1083 | Traversée de répertoire vers fichiers système |
 | 9 | CSRF | DVWA — CSRF | T1185 | Requête forgée hors session légitime |
-| 10 | Session IDs faibles | DVWA — Weak Session IDs | T1539 | Analyse de prévisibilité des session IDs |
+| 10 | Session IDs faibles | DVWA — Weak Session IDs | T1539 | Analyse de prévisibilité des identifiants de session |
 
-### Exemple de script d'attaque automatisé
-
-Le script `recon_and_bruteforce.sh` (section 4.2) enchaîne un scan de reconnaissance et un brute force SSH en une seule exécution, pour reproduire de façon identique le même scénario d'une session de test à l'autre — condition nécessaire pour comparer objectivement le taux de détection avant/après l'écriture de règles custom.
+→ Commandes exactes de chaque scénario : page Notion **« Intégration et Validation »** et rapport de pentesting associé.
 
 ---
 
@@ -471,52 +238,39 @@ Le script `recon_and_bruteforce.sh` (section 4.2) enchaîne un scan de reconnais
 
 ### Sources de données corrélées par Wazuh
 
-| Source | Collectée via | Donne de la visibilité sur |
-|---|---|---|
-| `/var/log/auth.log` | Agent Wazuh (décodeur natif) | Brute force SSH, connexions réussies/échouées |
-| `/var/log/apache2/access.log` | Agent Wazuh (decoder `apache-access`) | Requêtes web suspectes (SQLi, XSS, LFI) |
-| `/var/log/suricata/eve.json` | Agent Wazuh (`<localfile log_format="json">`) | Scans de ports, signatures réseau (NIDS) |
-| Syscheck (FIM) | Agent Wazuh, temps réel sur `dvwa/` et `/etc` | Dépôt de fichiers (ex. webshell) |
-| SCA | Agent Wazuh, scan toutes les 12h | Niveau de durcissement vs. CIS Benchmark |
-| auditd (recommandé, non actif en V1) | Règle `execve` sur `www-data` | Exécution de commandes post-exploitation |
+| Source | Donne de la visibilité sur |
+|---|---|
+| Logs d'authentification système | Brute force SSH, connexions réussies/échouées |
+| Logs d'accès Apache | Requêtes web suspectes (SQLi, XSS, LFI) |
+| Alertes Suricata (NIDS) | Scans de ports, signatures réseau |
+| Syscheck (FIM) | Dépôt de fichiers (ex. webshell), temps réel sur DVWA et `/etc` |
+| SCA | Niveau de durcissement vs. CIS Benchmark |
+| auditd (recommandé, non actif en V1) | Exécution de commandes post-exploitation |
 
 ### Détection attendue par scénario
 
-- **Reconnaissance réseau (T1046) :** point de vigilance documenté — Wazuh est un **HIDS**, pas un NIDS. Sans Suricata, un simple `nmap` n'est **pas** détecté nativement. Suricata comble cette lacune en écrivant dans `eve.json`, lu par l'agent.
-- **Brute force SSH / applicatif (T1110) :** couvert par les décodeurs natifs Wazuh sur `auth.log` et `access.log` (groupe `web`, `attack`, règles ~31100+).
-- **Injection SQL (T1190) :** détection native possible si le decoder web détecte des patterns (`UNION SELECT`, `OR 1=1`) ; sinon nécessite une règle custom (voir ci-dessous).
-- **Command Injection (T1059) :** détection fiable uniquement si **auditd** est configuré sur l'agent pour tracer les `execve` du processus `www-data` — non actif en V1, identifié comme axe d'amélioration.
-- **Webshell / File Upload (T1505.003) :** scénario de démonstration du **FIM temps réel** — un fichier `.php` déposé dans `hackable/uploads/` doit déclencher une alerte `syscheck` en quelques minutes.
-- **XSS (T1059.007) :** généralement couvert par les règles web par défaut (groupe `xss`) si le decoder `apache-access` est actif.
-- **LFI (T1083) :** pattern `../` / `etc/passwd` dans les logs web, couvert si le décodeur web est actif.
+- **Reconnaissance réseau (T1046) :** point de vigilance documenté — Wazuh est un **HIDS**, pas un NIDS. Sans Suricata, un simple scan de ports n'est **pas** détecté nativement. Suricata comble cette lacune en alimentant l'agent Wazuh.
+- **Brute force SSH / applicatif (T1110) :** couvert par les décodeurs natifs Wazuh sur les logs d'authentification et d'accès web.
+- **Injection SQL (T1190) :** détection native possible si le decoder web reconnaît les patterns d'injection ; sinon nécessite une règle custom.
+- **Command Injection (T1059) :** détection fiable uniquement si **auditd** est configuré sur l'agent pour tracer l'exécution de commandes par le processus web — non actif en V1, identifié comme axe d'amélioration.
+- **Webshell / File Upload (T1505.003) :** scénario de démonstration du **FIM temps réel** — un fichier déposé dans le répertoire d'upload doit déclencher une alerte en quelques minutes.
+- **XSS (T1059.007) :** généralement couvert par les règles web par défaut si le decoder applicatif est actif.
+- **LFI (T1083) :** pattern de traversée de répertoire dans les logs web, couvert si le décodeur web est actif.
 - **CSRF et Weak Session IDs :** signature réseau faible, documentés comme **angles morts probables** d'une détection HIDS classique sans WAF applicatif dédié.
 
-### Exemple de règle custom (si détection native absente)
+### Exemple de logique de règle custom
 
-Règle proposée pour couvrir les patterns SQLi non détectés nativement, à placer dans `local_rules.xml` :
-
-```xml
-<rule id="100100" level="10">
-  <if_sid>31100</if_sid>
-  <url>union select|information_schema|sleep\(|benchmark\(</url>
-  <description>Possible SQL Injection attempt detected in web logs</description>
-  <mitre>
-    <id>T1190</id>
-  </mitre>
-</rule>
-```
-
-> D'autres règles custom (brute force applicatif avec seuil, détection de dépôt de webshell par extension, détection de payloads LFI) sont à documenter au fur et à mesure dans `rules/`, chacune avec : objectif, logique, log brut déclencheur, et commande de re-test.
+Lorsqu'une technique n'est pas couverte par les règles natives (par exemple certains patterns SQLi), le principe retenu est d'écrire une règle `local_rules.xml` qui s'appuie sur la règle web générique de Wazuh et ajoute une détection par motif (`union select`, `information_schema`, etc.), associée à l'identifiant MITRE correspondant. Chaque règle custom ainsi créée est documentée dans `rules/` avec son objectif, sa logique, le log brut qui l'a motivée et la commande de re-test ayant permis de la valider.
 
 ### Active Response
 
-Objectif V1 : blocage automatique d'une IP source après dépassement d'un seuil de tentatives de brute force SSH, via `firewall-drop` (intégration UFW). Statut : **à finaliser** — voir [section 08](#08-limites-et-améliorations).
+Objectif V1 : blocage automatique d'une IP source après dépassement d'un seuil de tentatives de brute force SSH. Statut : **à finaliser** — voir [section 08](#08-limites-et-améliorations).
 
 ### Processus d'investigation dans le Dashboard
 
-1. Module **Security Events** → filtrer par `agent.ip: <ip-victime>`.
+1. Module **Security Events** → filtrer par l'IP de la machine Victime.
 2. Pour chaque technique testée, vérifier l'apparition d'une alerte correspondante.
-3. Relever le `rule.id`, le niveau de sévérité, et le timestamp (`@timestamp`) pour mesurer le temps de détection.
+3. Relever l'identifiant de règle, le niveau de sévérité et l'horodatage pour mesurer le temps de détection.
 4. Si absente : passer au module **Discover**, isoler le log brut correspondant, et remonter à l'écriture d'une règle custom.
 
 ---
@@ -547,7 +301,7 @@ Objectif V1 : blocage automatique d'une IP source après dépassement d'un seuil
 | Techniques ATT&CK testées | Au moins 8 techniques distinctes | 10 scénarios définis (section 05) |
 | Taux de détection initial | Mesuré et documenté (même faible) | *à compléter après campagne de test* |
 | Taux de détection après règles custom | Amélioration démontrable (ex. +40 points) | *à compléter* |
-| Règles custom créées | Au moins 5, documentées et testées | 1 exemple fourni (SQLi) — *à compléter* |
+| Règles custom créées | Au moins 5, documentées et testées | *à compléter* |
 | Active Response fonctionnel | Blocage automatique validé sur au moins 1 scénario | *non finalisé* |
 | Documentation | README et rapports complets, compréhensibles par un tiers | Ce document |
 
@@ -576,11 +330,11 @@ Module Wazuh → **Security Configuration Assessment** : pourcentage de conformi
 
 | Limite | Impact | Mitigation / statut |
 |---|---|---|
-| Wazuh est un **HIDS**, pas un NIDS natif | Les scans réseau simples ne sont pas détectés sans Suricata | Suricata intégré et lu via `eve.json` — mitigé |
+| Wazuh est un **HIDS**, pas un NIDS natif | Les scans réseau simples ne sont pas détectés sans Suricata | Suricata intégré — mitigé |
 | Suricata et agent Wazuh colocalisés sur la machine cible | Un attaquant qui compromet la Victime peut désactiver la détection | Documenté comme limite de lab ; exploitable comme scénario d'évasion (T1562, Impair Defenses) pour une V2 |
 | auditd non configuré en V1 | Command Injection / exécution post-exploitation moins visible | Axe d'amélioration prioritaire V1.1 |
 | CSRF et Weak Session IDs | Signature réseau faible, angles morts probables d'un HIDS classique | Nécessiterait un WAF ou une corrélation applicative avancée — hors périmètre V1 |
-| Dérive d'adressage IP (voir section 02) | Documentation et scripts à réajuster entre sessions | Fixer la plage NAT avant toute configuration Netplan pour les prochaines itérations |
+| Dérive d'adressage IP (voir section 02) | Documentation et scripts à réajuster entre sessions | Fixer la plage NAT avant toute configuration réseau pour les prochaines itérations |
 | Active Response non finalisé | Pas de blocage automatique démontré en V1 | Priorité pour clôturer les KPI de la section 07 |
 
 ### Risques identifiés et mitigation
@@ -593,18 +347,18 @@ Module Wazuh → **Security Configuration Assessment** : pourcentage de conformi
 
 ### Pistes d'amélioration pour une V2
 
-1. Activer **auditd** sur la Victime pour tracer l'exécution de commandes par `www-data` (amélioration directe de la détection Command Injection).
-2. Finaliser l'**Active Response** (blocage automatique via `firewall-drop`/UFW après seuil de brute force).
+1. Activer **auditd** sur la Victime pour tracer l'exécution de commandes par le processus web (amélioration directe de la détection Command Injection).
+2. Finaliser l'**Active Response** (blocage automatique après seuil de brute force).
 3. Tester les scénarios DVWA aux niveaux `medium` et `high` pour mesurer la résistance des règles face à des payloads obfusqués.
-4. Étendre la cible Windows (hors périmètre V1, déjà évoquée comme agent potentiel 003).
+4. Étendre la cible Windows (hors périmètre V1, déjà évoquée comme agent potentiel).
 5. Ajouter un second capteur réseau indépendant de la machine cible pour corriger la limite de colocalisation Suricata/agent.
-6. Automatiser le déploiement du lab via scripts bash versionnés pour en garantir la reproductibilité totale.
+6. Automatiser le déploiement du lab via scripts versionnés pour en garantir la reproductibilité totale.
 
 ---
 
 ## 09. Conclusion
 
-Ce projet a permis de déployer de bout en bout un SOC miniature fonctionnel autour de Wazuh, intégrant une détection basée hôte (HIDS, FIM, SCA) et une détection réseau complémentaire (Suricata/NIDS), face à une cible Linux volontairement vulnérable (DVWA) pilotée via un arsenal offensif CLI reproductible (Kali, scripts bash).
+Ce projet a permis de déployer de bout en bout un SOC miniature fonctionnel autour de Wazuh, intégrant une détection basée hôte (HIDS, FIM, SCA) et une détection réseau complémentaire (Suricata/NIDS), face à une cible Linux volontairement vulnérable (DVWA) pilotée via un arsenal offensif CLI reproductible (Kali).
 
 La démarche suivie — attaquer, mesurer dans le Dashboard, analyser les logs bruts en cas de non-détection, écrire une règle custom, re-tester — constitue le cœur de la pratique de **detection engineering**, et a mis en évidence des limites réelles et documentées (HIDS vs NIDS, absence d'auditd, colocalisation du capteur réseau) plutôt que de masquer une couverture de détection idéalisée.
 
@@ -623,6 +377,8 @@ Les perspectives V2 (auditd, Active Response finalisé, capteur réseau indépen
 - CIS Benchmarks : [https://www.cisecurity.org/cis-benchmarks](https://www.cisecurity.org/cis-benchmarks)
 
 ### Documentation détaillée du projet (Notion)
+
+Le détail pas-à-pas de chaque étape (commandes exactes, fichiers de configuration, captures d'écran de validation) est tenu dans les pages Notion suivantes :
 
 - [01 — Wazuh SOC | Cahier des charges et tableau de bord](https://scarce-lead-70d.notion.site/Wazuh-SOC-406baa6620a2809abda7efe0859e6758)
 - [02 — Kali Linux | Machine de test](https://scarce-lead-70d.notion.site/Kali-Linux-406baa6620a28093bfd1c979a43e9c8d)
