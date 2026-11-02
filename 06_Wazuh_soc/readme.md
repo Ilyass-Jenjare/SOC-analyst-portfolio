@@ -61,7 +61,7 @@ Ce projet a été réalisé dans le cadre d'un encadrement en entreprise, avec p
 |---|---|
 | Matérielle | Laptop 16 Go RAM, hyperviseur VMware Workstation Pro, pas d'interface graphique sur les VM pour limiter la RAM |
 | Sécurité | Lab totalement isolé du réseau domestique (réseau NAT/host-only interne à l'hyperviseur), aucune attaque ne doit sortir du périmètre, identifiants fictifs documentés comme tels |
-| Temps | ~3 semaines, en soirs/week-ends, en parallèle d'une activité encadrée en entreprise |
+
 
 ---
 
