@@ -383,7 +383,7 @@ Le détail pas-à-pas de chaque étape (commandes exactes, fichiers de configura
 - [02 — Kali Linux | Machine de test](https://scarce-lead-70d.notion.site/Kali-Linux-406baa6620a28093bfd1c979a43e9c8d)
 - [03 — Ubuntu Server | Machine cible](https://scarce-lead-70d.notion.site/Victime-Ubuntu-Server-406baa6620a2804f84a1f7e15e288887)
 - [04 — Intégration et validation | Tests du laboratoire](https://scarce-lead-70d.notion.site/Int-gration-et-Validation-406baa6620a28077aaefe487b2b08b36)
-- Rapport de Pentesting – Lab Wazuh/DVWA (Purple Team)
+- [05 — Rapport de Pentesting – Lab Wazuh/DVWA (Purple Team)](https://scarce-lead-70d.notion.site/Rapport-de-Pentesting-Lab-Wazuh-DVWA-409baa6620a281c9bc2ee773c6eeb68a?pvs=143)
 
 ---
 
