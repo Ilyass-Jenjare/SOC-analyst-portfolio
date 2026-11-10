@@ -356,17 +356,7 @@ Les perspectives (auditd, Active Response finalisé, puis la V2 autour de FortiG
 - DVWA (Damn Vulnerable Web Application) : [https://github.com/digininja/DVWA](https://github.com/digininja/DVWA)
 - Suricata : [https://suricata.io](https://suricata.io)
 - CIS Benchmarks : [https://www.cisecurity.org/cis-benchmarks](https://www.cisecurity.org/cis-benchmarks)
-
-### Documentation détaillée du projet (Notion)
-
-Le détail pas-à-pas de chaque étape (commandes exactes, fichiers de configuration, captures d'écran de validation) est tenu dans les pages Notion suivantes :
-
-- [01 — Wazuh SOC | Cahier des charges et tableau de bord](https://scarce-lead-70d.notion.site/Wazuh-SOC-406baa6620a2809abda7efe0859e6758)
-- [02 — Kali Linux | Machine de test](https://scarce-lead-70d.notion.site/Kali-Linux-406baa6620a28093bfd1c979a43e9c8d)
-- [03 — Ubuntu Server | Machine cible](https://scarce-lead-70d.notion.site/Victime-Ubuntu-Server-406baa6620a2804f84a1f7e15e288887)
-- [04 — Intégration et validation | Tests du laboratoire](https://scarce-lead-70d.notion.site/Int-gration-et-Validation-406baa6620a28077aaefe487b2b08b36)
-- [05 — Rapport de Pentesting – Lab Wazuh/DVWA (Purple Team)](https://scarce-lead-70d.notion.site/Rapport-de-Pentesting-Lab-Wazuh-DVWA-409baa6620a281c9bc2ee773c6eeb68a?pvs=143)
-
+<
 ---
 
 ## Structure du dépôt
