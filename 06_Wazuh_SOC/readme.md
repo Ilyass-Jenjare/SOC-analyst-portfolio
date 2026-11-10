@@ -52,6 +52,9 @@ Ce projet a été réalisé dans le cadre d'un encadrement en entreprise, avec p
 | 1 cible Ubuntu Server (SSH + Apache + DVWA) | Cibles Windows |
 | 1 poste offensif Kali (CLI) | Automatisation SOAR avancée |
 | Détection réseau via Suricata (NIDS) | EDR commercial tiers |
+<<<<<<< HEAD:06_Wazuh_SOC/readme.md
+| FIM, SCA, Active Response base, Notifications d'alertes par email | Threat Intel feeds externes payants |
+=======
 | FIM, SCA, Active Response de base, alertes par email | Threat Intel feeds externes payants |
 | FIM, SCA, Active Response base, Notifications d'alertes par email | Threat Intel feeds externes payants |
 
@@ -71,8 +74,36 @@ Ce projet a été réalisé dans le cadre d'un encadrement en entreprise, avec p
 
 ```=====================================================================
   LABORATOIRE SOC : Réseau LAN Unique (Intranet & Mouvement Latéral)
+```=====================================================================
+  LABORATOIRE SOC : Réseau LAN Unique (Intranet & Mouvement Latéral)
 =====================================================================
 
+                            +-------------------+
+                            |     INTERNET      |
+                            +---------+---------+
+                                      | (VMnet8)
++-------------------------------------------------------------------+
+|                      FORTIGATE (Edge Firewall)                    |
+|                                                                   |
+| [Port 1 - WAN / Extérieur]                [Port 2 - LAN / Interne]|
+| IP: DHCP / NAT                              IP: 10.0.10.254       |
++-------------------------------------------------------------------+
+                                      | 
+  +-----------------------------------+-----------------------------------+
+  |                                (VMnet2)                               |
+  |               |                               |                       |
++-+-------------+ +-------------+ +---------------+ +-------------------+ |
+| Kali Linux    | | Serveur Linux | Client Windows| | Serveur Wazuh     | |
+| (Attaquant)   | | (Intranet)  | | (Employé)     | | (Manager SOC)     | |
+| IP:10.0.10.30 | |10.0.10.20   | | IP:10.0.10.40 | | IP:10.0.10.50     | |
++---------------+ +-------------+ +---------------+ +-------------------+ |
+        |                 ▲               ▲                  ▲            |
+        |  Attaque directe|               |                  |            |
+        +-----------------+               |                  |            |
+        |                                 |                  |            |
+        |   (Logs de l'agent Wazuh)       |                  |            |
+        +----------------------------------------------------+            | 
+    
                             +-------------------+
                             |     INTERNET      |
                             +---------+---------+
@@ -163,6 +194,7 @@ Cette section résume, machine par machine, ce qui a été déployé et pourquoi
 ### 4.1 Machine 1 — Serveur SIEM Wazuh
 
 La VM a été installée en Ubuntu Server minimal avec OpenSSH activé dès l'installeur, puis dotée d'une adresse IP statique pour garantir que les agents et les attaquants pointent toujours vers la même adresse sans dépendre d'un bail DHCP.
+Une intégration SMTP a également été configurée au niveau du Manager pour le routage des alertes critiques par email, permettant une notification en temps réel de l'analyste.
 Une intégration SMTP a également été configurée au niveau du Manager pour le routage des alertes critiques par email, permettant une notification en temps réel de l'analyste.
 La stack Wazuh (Manager, Indexer, Dashboard) a été déployée en mode **all-in-one** via le script d'installation assistée officiel, qui gère automatiquement les certificats TLS entre les trois composants. Les identifiants administrateur générés à l'issue de l'installation sont conservés dans un gestionnaire de mots de passe, jamais commités sur le dépôt.
 
@@ -257,6 +289,9 @@ Chaque scénario suit le même cycle de detection engineering :
 | Syscheck (FIM) | Dépôt de fichiers (ex. webshell), temps réel sur DVWA et `/etc` |
 | SCA | Niveau de durcissement vs. CIS Benchmark |
 | auditd (recommandé, non actif en V1) | Exécution de commandes post-exploitation |
+<<<<<<< HEAD:06_Wazuh_SOC/readme.md
+| Intégration SMTP (Alerting) | Notification en temps réel des incidents critiques par email |
+=======
 | Intégration SMTP (alerting) | Notification de l'analyste par email pour les incidents de sévérité élevée |
 | Intégration SMTP (Alerting) | Notification en temps réel des incidents critiques par email |
 
