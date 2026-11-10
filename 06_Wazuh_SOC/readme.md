@@ -1,4 +1,4 @@
-# SOC Lab Wazuh — V1 Linux
+# SOC Lab Wazuh 
 
 **Détection d'intrusion et validation par attaques contrôlées (Blue Team / Purple Team)**
 
