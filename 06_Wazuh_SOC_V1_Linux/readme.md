@@ -5,7 +5,7 @@
 ![Status](https://img.shields.io/badge/status-en%20cours-yellow)
 ![SIEM](https://img.shields.io/badge/SIEM-Wazuh%204.9-success)
 
-> Projet personnel de cybersécurité mené en parallèle d'un encadrement en entreprise. Ce dépôt documente le déploiement d'un SOC miniature autour de Wazuh, la construction d'une cible Linux volontairement vulnérable, et l'émulation d'attaques réelles pour mesurer et améliorer la capacité de détection.
+> Projet personnel de cybersécurité mené en parallèle d'un encadrement en entreprise. Ce dépôt documente le déploiement d'un SOC miniature autour de Wazuh, la construction d'une cible Linux volontairement vulnérable, et l'émulation d'attaques réelles pour observer et améliorer la capacité de détection.
 
 ---
 
@@ -17,10 +17,9 @@
 4. [Implémentation](#04-implémentation)
 5. [Scénarios de sécurité](#05-scénarios-de-sécurité)
 6. [Détection et investigation](#06-détection-et-investigation)
-7. [Résultats et évaluation](#07-résultats-et-évaluation)
-8. [Limites et améliorations](#08-limites-et-améliorations)
-9. [Conclusion](#09-conclusion)
-10. [Références](#10-références)
+7. [Limites et améliorations](#07-limites-et-améliorations)
+8. [Conclusion](#08-conclusion)
+9. [Références](#09-références)
 
 ---
 
@@ -34,7 +33,7 @@ Ce projet a été réalisé dans le cadre d'un encadrement en entreprise, avec p
 
 - Déployer un SOC miniature fonctionnel autour de **Wazuh** (SIEM/XDR open source).
 - Construire une cible Linux volontairement vulnérable (DVWA), exploitable en CLI.
-- Émuler des attaques réelles et mesurer leur détection.
+- Émuler des attaques réelles et observer leur détection.
 - Écrire des règles de détection personnalisées pour combler les lacunes identifiées.
 - Produire une documentation et des livrables exploitables pour un portfolio cybersécurité (candidature SOC, alternance, stage).
 
@@ -102,7 +101,7 @@ Flux de données : chaque attaque lancée depuis Kali touche la machine Victime 
 
 ### Adressage réseau — évolution du lab
 
-> **Note de transparence :** l'adressage IP du lab a évolué au fil des sessions de travail, le réseau NAT de VMware Workstation ayant été réattribué à plusieurs reprises entre les phases de déploiement. Le tableau ci-dessous reflète les trois plages successivement utilisées. Cette dérive d'adressage est elle-même documentée comme point de vigilance en [section 08](#08-limites-et-améliorations).
+> **Note de transparence :** l'adressage IP du lab a évolué au fil des sessions de travail, le réseau NAT de VMware Workstation ayant été réattribué à plusieurs reprises entre les phases de déploiement. Le tableau ci-dessous reflète la plage utilisée. Cette dérive d'adressage est elle-même documentée comme point de vigilance en [section 07](#07-limites-et-améliorations).
 
 | Plage NAT | Wazuh Manager | Victime | Kali |
 |---|---|---|---|
@@ -148,7 +147,7 @@ Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration r�
 
 ## 04. Implémentation
 
-Cette section résume, machine par machine, ce qui a été déployé et pourquoi. **Le détail pas-à-pas (commandes exactes, fichiers de configuration, captures de validation) est tenu dans les pages Notion du projet**, référencées en [section 10](#10-références), afin d'éviter toute redondance avec ce README.
+Cette section résume, machine par machine, ce qui a été déployé et pourquoi. **Le détail pas-à-pas (commandes exactes, fichiers de configuration, captures de validation) est tenu dans les pages Notion du projet**, référencées en [section 09](#09-références), afin d'éviter toute redondance avec ce README.
 
 ### 4.1 Machine 1 — Serveur SIEM Wazuh
 
@@ -164,7 +163,7 @@ Un premier niveau de durcissement a ensuite été appliqué via un pare-feu appl
 
 Déployée à partir de l'image officielle VMware, la VM a été volontairement bridée en ressources (2 Go RAM, 2 vCPU) pour rester cohérente avec la contrainte des 16 Go du laptop hôte, et dotée d'une adresse IP statique afin que toutes les attaques simulées proviennent d'une source identifiable dans le SIEM.
 
-La disponibilité de l'arsenal offensif (`nmap`, `hydra`, `sqlmap`, `netcat`, `Wireshark`) a été vérifiée, puis un script de reconnaissance/brute force réutilisable (`recon_and_bruteforce.sh`) a été préparé pour pouvoir rejouer le même scénario d'attaque de façon identique d'une session de test à l'autre — condition nécessaire pour comparer objectivement le taux de détection avant/après l'écriture de règles custom.
+La disponibilité de l'arsenal offensif (`nmap`, `hydra`, `sqlmap`, `netcat`, `Wireshark`) a été vérifiée, puis un script de reconnaissance/brute force réutilisable (`recon_and_bruteforce.sh`) a été préparé pour pouvoir rejouer le même scénario d'attaque de façon identique d'une session de test à l'autre.
 
 → Détail des sous-étapes, script complet et wordlist : page Notion **« Kali Linux »**.
 
@@ -203,7 +202,7 @@ Chaque scénario suit le même cycle de detection engineering :
 3. **Vérification** dans le dashboard Wazuh (`Security Events`, `Threat Hunting`).
 4. **Si non détecté** — analyse du log brut, écriture d'une règle/décodeur custom.
 5. **Re-test** de la même attaque pour valider la nouvelle règle.
-6. **Documentation** — mise à jour de la matrice ATT&CK et rédaction du rapport d'incident.
+6. **Documentation** — rédaction du rapport d'incident.
 
 ### Règles d'engagement (Rules of Engagement)
 
@@ -213,7 +212,7 @@ Chaque scénario suit le même cycle de detection engineering :
 - **Objectif :** détection, pas exploitation destructive (pas de DoS, pas de persistance destructrice).
 - **Niveau DVWA Security :** tests idéalement menés à plusieurs niveaux (`low`, `medium`, `high`) pour observer si l'obfuscation de la requête échappe aux règles par défaut.
 
-### Scénarios testés, mappés MITRE ATT&CK
+### Scénarios définis, mappés MITRE ATT&CK
 
 | # | Technique | Module DVWA / cible | MITRE ATT&CK | Approche |
 |---|---|---|---|---|
@@ -262,7 +261,7 @@ Lorsqu'une technique n'est pas couverte par les règles natives (par exemple cer
 
 ### Active Response
 
-Objectif V1 : blocage automatique d'une IP source après dépassement d'un seuil de tentatives de brute force SSH. Statut : **à finaliser** — voir [section 08](#08-limites-et-améliorations).
+Objectif V1 : blocage automatique d'une IP source après dépassement d'un seuil de tentatives de brute force SSH. Statut : **à finaliser** — voir [section 07](#07-limites-et-améliorations).
 
 ### Processus d'investigation dans le Dashboard
 
@@ -273,56 +272,7 @@ Objectif V1 : blocage automatique d'une IP source après dépassement d'un seuil
 
 ---
 
-## 07. Résultats et évaluation
-
-> Cette section est **structurée pour être complétée au fil des campagnes de test**. Le tableau et les indicateurs ci-dessous constituent le gabarit de mesure du projet ; les valeurs réelles seront renseignées après chaque session d'attaque contre le Dashboard Wazuh.
-
-### Tableau de résultats (gabarit de mesure)
-
-| # | Technique | Niveau DVWA | Détecté nativement ? | Rule ID Wazuh | Sévérité | Temps de détection | Règle custom nécessaire ? |
-|---|---|---|---|---|---|---|---|
-| 1 | Scan réseau (nmap) | — | | | | | |
-| 2 | Brute force SSH | — | | | | | |
-| 3 | Brute force applicatif | low | | | | | |
-| 4 | Injection SQL | low | | | | | |
-| 5 | Command Injection | low | | | | | |
-| 6 | XSS Reflected | low | | | | | |
-| 7 | File Upload (webshell) | low | | | | | |
-| 8 | LFI | low | | | | | |
-| 9 | CSRF | low | | | | | |
-| 10 | Weak Session IDs | low | | | | | |
-
-### Indicateurs de performance (KPI)
-
-| Critère | Objectif cible | Résultat actuel |
-|---|---|---|
-| Techniques ATT&CK testées | Au moins 8 techniques distinctes | 10 scénarios définis (section 05) |
-| Taux de détection initial | Mesuré et documenté (même faible) | *à compléter après campagne de test* |
-| Taux de détection après règles custom | Amélioration démontrable (ex. +40 points) | *à compléter* |
-| Règles custom créées | Au moins 5, documentées et testées | *à compléter* |
-| Active Response fonctionnel | Blocage automatique validé sur au moins 1 scénario | *non finalisé* |
-| Documentation | README et rapports complets, compréhensibles par un tiers | Ce document |
-
-### Matrice de couverture ATT&CK
-
-À tenir à jour dans `attack-coverage.md` au format :
-
-| Tactique | Technique | ID | Testée | Détectée | Règle associée |
-|---|---|---|---|---|---|
-| Discovery | Network Service Discovery | T1046 | ✅ | | |
-| Credential Access | Brute Force | T1110.001 | ✅ | | |
-| Initial Access | Exploit Public-Facing App | T1190 | ✅ | | |
-| Execution | Unix Shell | T1059.004 | ✅ | | |
-| Persistence | Web Shell | T1505.003 | ✅ | | |
-| Discovery | File and Directory Discovery | T1083 | ✅ | | |
-
-### Score SCA (Security Configuration Assessment)
-
-Module Wazuh → **Security Configuration Assessment** : pourcentage de conformité au CIS Benchmark Linux à relever ici après premier scan complet de la Victime.
-
----
-
-## 08. Limites et améliorations
+## 07. Limites et améliorations
 
 ### Limites connues de l'architecture V1
 
@@ -333,7 +283,8 @@ Module Wazuh → **Security Configuration Assessment** : pourcentage de conformi
 | auditd non configuré en V1 | Command Injection / exécution post-exploitation moins visible | Axe d'amélioration prioritaire V1.1 |
 | CSRF et Weak Session IDs | Signature réseau faible, angles morts probables d'un HIDS classique | Nécessiterait un WAF ou une corrélation applicative avancée — hors périmètre V1 |
 | Dérive d'adressage IP (voir section 02) | Documentation et scripts à réajuster entre sessions | Fixer la plage NAT avant toute configuration réseau pour les prochaines itérations |
-| Active Response non finalisé | Pas de blocage automatique démontré en V1 | Priorité pour clôturer les KPI de la section 07 |
+| Active Response non finalisé | Pas de blocage automatique démontré en V1 | Priorité pour une prochaine itération |
+| Aucune mesure chiffrée de détection relevée | Taux de détection, temps de détection et score SCA non documentés | Axe prioritaire pour la suite : mener une campagne de test et consigner les résultats |
 
 ### Risques identifiés et mitigation
 
@@ -342,6 +293,8 @@ Module Wazuh → **Security Configuration Assessment** : pourcentage de conformi
 | Consommation RAM excessive si les 3 VM tournent en continu | Ralentissement du lab | Éteindre Kali hors des phases d'attaque |
 | Dérive de périmètre (vouloir tout faire en V1) | Projet jamais terminé | Respecter strictement le hors-périmètre défini en section 01 |
 | Oubli de l'isolation réseau | Risque légal/éthique en cas de fuite d'attaque | Vérifier la configuration réseau avant chaque session d'attaque |
+
+### Perspectives V2
 
 Plutôt qu'une simple extension de la V1, la V2 introduit une segmentation réseau réelle autour d'un firewall nouvelle génération (FortiGate), rapprochant le lab d'une architecture d'entreprise type DMZ/LAN :
 
@@ -376,19 +329,19 @@ Plutôt qu'une simple extension de la V1, la V2 introduit une segmentation rése
 
 ---
 
-## 09. Conclusion
+## 08. Conclusion
 
 Ce projet a permis de déployer de bout en bout un SOC miniature fonctionnel autour de Wazuh, intégrant une détection basée hôte (HIDS, FIM, SCA) et une détection réseau complémentaire (Suricata/NIDS), face à une cible Linux volontairement vulnérable (DVWA) pilotée via un arsenal offensif CLI reproductible (Kali).
 
-La démarche suivie — attaquer, mesurer dans le Dashboard, analyser les logs bruts en cas de non-détection, écrire une règle custom, re-tester — constitue le cœur de la pratique de **detection engineering**, et a mis en évidence des limites réelles et documentées (HIDS vs NIDS, absence d'auditd, colocalisation du capteur réseau) plutôt que de masquer une couverture de détection idéalisée.
+La démarche définie (attaquer, mesurer dans le Dashboard, analyser les logs bruts en cas de non-détection, écrire une règle custom, re-tester) constitue le cœur de la pratique de **detection engineering**. Le projet a mis en évidence des limites réelles et documentées (HIDS vs NIDS, absence d'auditd, colocalisation du capteur réseau) plutôt que de masquer une couverture de détection idéalisée.
 
-Les résultats chiffrés définitifs (taux de détection initial/après règles, score SCA, couverture MITRE ATT&CK complète) restent à consolider lors de la campagne de test finale (section 07), mais la méthodologie, l'architecture et les 10 scénarios d'attaque mappés ATT&CK sont d'ores et déjà opérationnels et reproductibles.
+L'infrastructure, l'architecture et les 10 scénarios d'attaque mappés ATT&CK sont opérationnels et reproductibles. Aucune mesure chiffrée de détection n'a été relevée en V1 ; c'est un axe prioritaire pour la suite.
 
-Les perspectives V2 (auditd, Active Response finalisé, capteur réseau indépendant, extension Windows) donnent une feuille de route claire pour approfondir ce lab au-delà de sa version V1 Linux.
+Les perspectives (auditd, Active Response finalisé, puis la V2 segmentée autour de FortiGate avec extension Windows) donnent une feuille de route claire pour approfondir ce lab au-delà de sa version V1 Linux.
 
 ---
 
-## 10. Références
+## 09. Références
 
 - Documentation officielle Wazuh : [https://documentation.wazuh.com](https://documentation.wazuh.com)
 - MITRE ATT&CK : [https://attack.mitre.org](https://attack.mitre.org)
@@ -417,10 +370,9 @@ Le détail pas-à-pas de chaque étape (commandes exactes, fichiers de configura
 ├── rules/                       # Règles Wazuh custom (XML, commentées)
 ├── attack-scenarios/            # Scripts/commandes par scénario d'attaque
 ├── incident-reports/            # Rapports d'incident (Markdown)
-├── attack-coverage.md           # Matrice de couverture MITRE ATT&CK
-└── evidence/                    # Captures d'écran et preuves (alertes, scores SCA, etc.)
+└── evidence/                    # Captures d'écran et preuves (si présentes)
 ```
 
 ---
 
-<p align="center"><i>Document évolutif — à compléter au fil du projet avec les résultats réels, les captures d'écran de preuve et les retours d'expérience. Environnement de laboratoire fermé et personnel, à but pédagogique (lab isolé, identifiants fictifs).</i></p>
+<p align="center"><i>Document évolutif. Environnement de laboratoire fermé et personnel, à but pédagogique (lab isolé, identifiants fictifs).</i></p>
