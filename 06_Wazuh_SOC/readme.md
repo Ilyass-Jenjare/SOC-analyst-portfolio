@@ -5,7 +5,7 @@
 ![Status](https://img.shields.io/badge/status-en%20cours-yellow)
 ![SIEM](https://img.shields.io/badge/SIEM-Wazuh%204.9-success)
 
-> Projet personnel de cybersécurité mené en parallèle d'un encadrement en entreprise. Ce dépôt documente le déploiement d'un SOC miniature autour de Wazuh, la construction d'une cible Linux volontairement vulnérable, et l'émulation d'attaques réelles pour mesurer et améliorer la capacité de détection.
+> Projet personnel de cybersécurité mené en parallèle d'un encadrement en entreprise. Ce dépôt documente le déploiement d'un SOC miniature autour de Wazuh, la construction d'une cible Linux volontairement vulnérable, et l'émulation d'attaques réelles pour observer et améliorer la capacité de détection.
 
 ---
 
@@ -17,10 +17,9 @@
 4. [Implémentation](#04-implémentation)
 5. [Scénarios de sécurité](#05-scénarios-de-sécurité)
 6. [Détection et investigation](#06-détection-et-investigation)
-7. [Résultats et évaluation](#07-résultats-et-évaluation)
-8. [Limites et améliorations](#08-limites-et-améliorations)
-9. [Conclusion](#09-conclusion)
-10. [Références](#10-références)
+7. [Limites et améliorations](#07-limites-et-améliorations)
+8. [Conclusion](#08-conclusion)
+9. [Références](#09-références)
 
 ---
 
@@ -34,7 +33,7 @@ Ce projet a été réalisé dans le cadre d'un encadrement en entreprise, avec p
 
 - Déployer un SOC miniature fonctionnel autour de **Wazuh** (SIEM/XDR open source).
 - Construire une cible Linux volontairement vulnérable (DVWA), exploitable en CLI.
-- Émuler des attaques réelles et mesurer leur détection.
+- Émuler des attaques réelles et observer leur détection.
 - Écrire des règles de détection personnalisées pour combler les lacunes identifiées.
 - Produire une documentation et des livrables exploitables pour un portfolio cybersécurité (candidature SOC, alternance, stage).
 
@@ -53,6 +52,7 @@ Ce projet a été réalisé dans le cadre d'un encadrement en entreprise, avec p
 | 1 cible Ubuntu Server (SSH + Apache + DVWA) | Cibles Windows |
 | 1 poste offensif Kali (CLI) | Automatisation SOAR avancée |
 | Détection réseau via Suricata (NIDS) | EDR commercial tiers |
+| FIM, SCA, Active Response de base, alertes par email | Threat Intel feeds externes payants |
 | FIM, SCA, Active Response base, Notifications d'alertes par email | Threat Intel feeds externes payants |
 
 ### Contraintes du projet
@@ -111,7 +111,7 @@ Flux de données : chaque attaque lancée depuis Kali touche la machine Victime 
 
 ### Adressage réseau — évolution du lab
 
-> **Note de transparence :** l'adressage IP du lab a évolué au fil des sessions de travail, le réseau NAT de VMware Workstation ayant été réattribué à plusieurs reprises entre les phases de déploiement. Le tableau ci-dessous reflète les trois plages successivement utilisées. Cette dérive d'adressage est elle-même documentée comme point de vigilance en [section 08](#08-limites-et-améliorations).
+> **Note de transparence :** l'adressage IP du lab a évolué au fil des sessions de travail, le réseau NAT de VMware Workstation ayant été réattribué à plusieurs reprises entre les phases de déploiement. Le tableau ci-dessous reflète la plage utilisée. Cette dérive d'adressage est elle-même documentée comme point de vigilance en [section 07](#07-limites-et-améliorations).
 
 | Plage NAT | Wazuh Manager | Victime | Kali |
 |---|---|---|---|
@@ -140,6 +140,7 @@ Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration r�
 | Wazuh Manager | M1 | Corrélation, moteur de règles, alertes |
 | Wazuh Indexer | M1 | Stockage des événements (OpenSearch) |
 | Wazuh Dashboard | M1 | Visualisation (consultée depuis l'hôte, port 443) |
+| Postfix (relais SMTP) | M1 | Envoi des notifications d'alertes par email |
 | Wazuh Agent (v4.9.2) | M3 | Collecte logs, FIM, SCA |
 | OpenSSH Server | M3 | Service exposé, cible de brute force |
 | Apache2 + PHP + MariaDB | M3 | Serveur web applicatif |
@@ -157,7 +158,7 @@ Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration r�
 
 ## 04. Implémentation
 
-Cette section résume, machine par machine, ce qui a été déployé et pourquoi. **Le détail pas-à-pas (commandes exactes, fichiers de configuration, captures de validation) est tenu dans les pages Notion du projet**, référencées en [section 10](#10-références), afin d'éviter toute redondance avec ce README.
+Cette section résume, machine par machine, ce qui a été déployé et pourquoi. **Le détail pas-à-pas (commandes exactes, fichiers de configuration, captures de validation) est tenu dans les pages Notion du projet**, référencées en [section 09](#09-références), afin d'éviter toute redondance avec ce README.
 
 ### 4.1 Machine 1 — Serveur SIEM Wazuh
 
@@ -167,13 +168,15 @@ La stack Wazuh (Manager, Indexer, Dashboard) a été déployée en mode **all-in
 
 Un premier niveau de durcissement a ensuite été appliqué via un pare-feu applicatif (UFW), n'autorisant que les ports strictement nécessaires : SSH, HTTPS pour le dashboard, et les ports d'enrôlement/transmission des agents. Un scan de validation depuis Kali confirme qu'aucun autre port n'est exposé.
 
+Une intégration SMTP a ensuite été configurée sur le Manager : Wazuh ne gérant pas nativement l'authentification TLS exigée par les fournisseurs de messagerie, un relais local **Postfix** (TLS, authentification par mot de passe d'application) assure l'envoi, et le Manager lui transmet les alertes dépassant un seuil de sévérité défini (niveau 10) afin de notifier l'analyste par email. Les identifiants du relais restent hors du dépôt, comme les autres secrets.
+
 → Détail des sous-étapes et commandes : page Notion **« Serveur SIEM (Wazuh) »**.
 
 ### 4.2 Machine 2 — Poste offensif Kali Linux
 
 Déployée à partir de l'image officielle VMware, la VM a été volontairement bridée en ressources (2 Go RAM, 2 vCPU) pour rester cohérente avec la contrainte des 16 Go du laptop hôte, et dotée d'une adresse IP statique afin que toutes les attaques simulées proviennent d'une source identifiable dans le SIEM.
 
-La disponibilité de l'arsenal offensif (`nmap`, `hydra`, `sqlmap`, `netcat`, `Wireshark`) a été vérifiée, puis un script de reconnaissance/brute force réutilisable (`recon_and_bruteforce.sh`) a été préparé pour pouvoir rejouer le même scénario d'attaque de façon identique d'une session de test à l'autre — condition nécessaire pour comparer objectivement le taux de détection avant/après l'écriture de règles custom.
+La disponibilité de l'arsenal offensif (`nmap`, `hydra`, `sqlmap`, `netcat`, `Wireshark`) a été vérifiée, puis un script de reconnaissance/brute force réutilisable (`recon_and_bruteforce.sh`) a été préparé pour pouvoir rejouer le même scénario d'attaque de façon identique d'une session de test à l'autre.
 
 → Détail des sous-étapes, script complet et wordlist : page Notion **« Kali Linux »**.
 
@@ -212,7 +215,7 @@ Chaque scénario suit le même cycle de detection engineering :
 3. **Vérification** dans le dashboard Wazuh (`Security Events`, `Threat Hunting`).
 4. **Si non détecté** — analyse du log brut, écriture d'une règle/décodeur custom.
 5. **Re-test** de la même attaque pour valider la nouvelle règle.
-6. **Documentation** — mise à jour de la matrice ATT&CK et rédaction du rapport d'incident.
+6. **Documentation** — rédaction du rapport d'incident.
 
 ### Règles d'engagement (Rules of Engagement)
 
@@ -222,7 +225,7 @@ Chaque scénario suit le même cycle de detection engineering :
 - **Objectif :** détection, pas exploitation destructive (pas de DoS, pas de persistance destructrice).
 - **Niveau DVWA Security :** tests idéalement menés à plusieurs niveaux (`low`, `medium`, `high`) pour observer si l'obfuscation de la requête échappe aux règles par défaut.
 
-### Scénarios testés, mappés MITRE ATT&CK
+### Scénarios définis, mappés MITRE ATT&CK
 
 | # | Technique | Module DVWA / cible | MITRE ATT&CK | Approche |
 |---|---|---|---|---|
@@ -246,6 +249,7 @@ Chaque scénario suit le même cycle de detection engineering :
 ### Sources de données corrélées par Wazuh
 
 | Source / Module | Donne de la visibilité sur (ou permet de) |
+| Source / Module | Donne de la visibilité sur (ou permet de) |
 |---|---|
 | Logs d'authentification système | Brute force SSH, connexions réussies/échouées |
 | Logs d'accès Apache | Requêtes web suspectes (SQLi, XSS, LFI) |
@@ -253,6 +257,7 @@ Chaque scénario suit le même cycle de detection engineering :
 | Syscheck (FIM) | Dépôt de fichiers (ex. webshell), temps réel sur DVWA et `/etc` |
 | SCA | Niveau de durcissement vs. CIS Benchmark |
 | auditd (recommandé, non actif en V1) | Exécution de commandes post-exploitation |
+| Intégration SMTP (alerting) | Notification de l'analyste par email pour les incidents de sévérité élevée |
 | Intégration SMTP (Alerting) | Notification en temps réel des incidents critiques par email |
 
 ### Détection attendue par scénario
@@ -272,7 +277,11 @@ Lorsqu'une technique n'est pas couverte par les règles natives (par exemple cer
 
 ### Active Response
 
-Objectif V1 : blocage automatique d'une IP source après dépassement d'un seuil de tentatives de brute force SSH. Statut : **à finaliser** — voir [section 08](#08-limites-et-améliorations).
+Objectif V1 : blocage automatique d'une IP source après dépassement d'un seuil de tentatives de brute force SSH. Statut : **à finaliser** — voir [section 07](#07-limites-et-améliorations).
+
+### Alerting par email
+
+Objectif V1 : notifier automatiquement l'analyste SOC pour toute alerte de sévérité élevée (niveau ≥ 10 dans la configuration retenue), via le relais Postfix du Manager. Le seuil est volontairement élevé pour limiter le bruit, et un plafond horaire d'envoi (`email_maxperhour`) évite la saturation de la boîte de réception, au prix d'un risque de notifications différées lors d'un pic d'alertes. Cette notification est une **action de sortie** : elle complète la détection sans s'y substituer.
 
 ### Processus d'investigation dans le Dashboard
 
@@ -283,56 +292,7 @@ Objectif V1 : blocage automatique d'une IP source après dépassement d'un seuil
 
 ---
 
-## 07. Résultats et évaluation
-
-> Cette section est **structurée pour être complétée au fil des campagnes de test**. Le tableau et les indicateurs ci-dessous constituent le gabarit de mesure du projet ; les valeurs réelles seront renseignées après chaque session d'attaque contre le Dashboard Wazuh.
-
-### Tableau de résultats (gabarit de mesure)
-
-| # | Technique | Niveau DVWA | Détecté nativement ? | Rule ID Wazuh | Sévérité | Temps de détection | Règle custom nécessaire ? |
-|---|---|---|---|---|---|---|---|
-| 1 | Scan réseau (nmap) | — | | | | | |
-| 2 | Brute force SSH | — | | | | | |
-| 3 | Brute force applicatif | low | | | | | |
-| 4 | Injection SQL | low | | | | | |
-| 5 | Command Injection | low | | | | | |
-| 6 | XSS Reflected | low | | | | | |
-| 7 | File Upload (webshell) | low | | | | | |
-| 8 | LFI | low | | | | | |
-| 9 | CSRF | low | | | | | |
-| 10 | Weak Session IDs | low | | | | | |
-
-### Indicateurs de performance (KPI)
-
-| Critère | Objectif cible | Résultat actuel |
-|---|---|---|
-| Techniques ATT&CK testées | Au moins 8 techniques distinctes | 10 scénarios définis (section 05) |
-| Taux de détection initial | Mesuré et documenté (même faible) | *à compléter après campagne de test* |
-| Taux de détection après règles custom | Amélioration démontrable (ex. +40 points) | *à compléter* |
-| Règles custom créées | Au moins 5, documentées et testées | *à compléter* |
-| Active Response fonctionnel | Blocage automatique validé sur au moins 1 scénario | *non finalisé* |
-| Documentation | README et rapports complets, compréhensibles par un tiers | Ce document |
-
-### Matrice de couverture ATT&CK
-
-À tenir à jour dans `attack-coverage.md` au format :
-
-| Tactique | Technique | ID | Testée | Détectée | Règle associée |
-|---|---|---|---|---|---|
-| Discovery | Network Service Discovery | T1046 | ✅ | | |
-| Credential Access | Brute Force | T1110.001 | ✅ | | |
-| Initial Access | Exploit Public-Facing App | T1190 | ✅ | | |
-| Execution | Unix Shell | T1059.004 | ✅ | | |
-| Persistence | Web Shell | T1505.003 | ✅ | | |
-| Discovery | File and Directory Discovery | T1083 | ✅ | | |
-
-### Score SCA (Security Configuration Assessment)
-
-Module Wazuh → **Security Configuration Assessment** : pourcentage de conformité au CIS Benchmark Linux à relever ici après premier scan complet de la Victime.
-
----
-
-## 08. Limites et améliorations
+## 07. Limites et améliorations
 
 ### Limites connues de l'architecture V1
 
@@ -343,7 +303,8 @@ Module Wazuh → **Security Configuration Assessment** : pourcentage de conformi
 | auditd non configuré en V1 | Command Injection / exécution post-exploitation moins visible | Axe d'amélioration prioritaire V1.1 |
 | CSRF et Weak Session IDs | Signature réseau faible, angles morts probables d'un HIDS classique | Nécessiterait un WAF ou une corrélation applicative avancée — hors périmètre V1 |
 | Dérive d'adressage IP (voir section 02) | Documentation et scripts à réajuster entre sessions | Fixer la plage NAT avant toute configuration réseau pour les prochaines itérations |
-| Active Response non finalisé | Pas de blocage automatique démontré en V1 | Priorité pour clôturer les KPI de la section 07 |
+| Active Response non finalisé | Pas de blocage automatique démontré en V1 | Priorité pour une prochaine itération |
+| Aucune mesure chiffrée de détection relevée | Taux de détection, temps de détection et score SCA non documentés | Axe prioritaire pour la suite : mener une campagne de test et consigner les résultats |
 
 ### Risques identifiés et mitigation
 
@@ -353,7 +314,11 @@ Module Wazuh → **Security Configuration Assessment** : pourcentage de conformi
 | Dérive de périmètre (vouloir tout faire en V1) | Projet jamais terminé | Respecter strictement le hors-périmètre défini en section 01 |
 | Oubli de l'isolation réseau | Risque légal/éthique en cas de fuite d'attaque | Vérifier la configuration réseau avant chaque session d'attaque |
 
-Plutôt qu'une simple extension de la V1, la V2 introduit une segmentation réseau réelle autour d'un firewall nouvelle génération (FortiGate), rapprochant le lab d'une architecture d'entreprise type DMZ/LAN :
+### Perspectives V2
+
+### Perspectives V2
+
+La V2 place le lab derrière un firewall nouvelle génération (**FortiGate**), qui devient le point de passage entre Internet et le réseau interne, et étend la couverture à un poste Windows. Il n'y a pas de DMZ : tout le lab vit dans une zone LAN unique.
 
 ```
                        [ INTERNET ]
@@ -361,44 +326,44 @@ Plutôt qu'une simple extension de la V1, la V2 introduit une segmentation rése
                      (VMnet8 - NAT)
                       Port 1 (WAN)
                     +-------------------+
-                    |   FORTIGATE VM    |  (L'agent de sécurité)
+                    |   FORTIGATE VM    |
                     +-------------------+
-                   /                     \
-     DMZ (Port 3) /                       \ LAN (Port 2)
-     VMnet3 (Host-Only)                   VMnet2 (Host-Only)
-     Passerelle : 172.16.10.254           Passerelle : 10.0.10.254
-                 |                                      |
-                 |                        +-------------+-------------+
-     [ Serveur Web (Ubuntu) ]             |                           |
-     Site accessible au public     [ Client Linux ]          [ Client Windows ]
-     IP : 172.16.10.20             Poste de l'entreprise     Poste de l'entreprise
-                                   IP : 10.0.10.30           IP : 10.0.10.40
-
+                            |
+                  LAN — VMnet2 (Host-Only)
+                  Passerelle : 10.0.10.254
+                            |
+          +-----------------+-----------------+
+          |                 |                 |
+   [ Kali attaquant ] [ Wazuh Server ] [ Client Windows ]
+                                        Poste de l'entreprise
+                                        IP : 10.0.10.40
 ```
 
 ### Principes de cette évolution
 
-1. **FortiGate comme point de passage obligé** entre Internet, la DMZ et le LAN, apportant une inspection de trafic (filtrage, NAT, politiques inter-zones) en amont de ce que Wazuh/Suricata observent côté hôte — complète la limite HIDS identifiée en V1.
-2. **Séparation DMZ / LAN** : le serveur web public (cible exploitable, équivalent du rôle DVWA de la V1) est isolé en DMZ, tandis que les postes clients (Linux et Windows) rejoignent un réseau interne distinct — un attaquant qui compromet le serveur web ne se retrouve plus directement sur le même segment que les postes de l'entreprise, corrigeant la limite de colocalisation identifiée en V1.
-3. **Extension à un client Windows**, hors périmètre de la V1, pour élargir la couverture de détection au-delà des seules machines Linux.
-4. **Wazuh reste le SIEM central**, mais collecte désormais des logs et événements depuis des zones réseau cloisonnées par le FortiGate, ce qui permet de tester des scénarios de mouvement latéral (DMZ → LAN) et de valider que la segmentation elle-même est détectable et traçable.
-5. **Politiques FortiGate comme nouvelle surface de detection engineering** : au même titre que les règles Wazuh custom en V1, les règles de pare-feu inter-zones devront être testées, affinées et documentées suite aux campagnes d'attaque.
+1. **FortiGate comme passerelle obligée** entre Internet (VMnet8, NAT, port WAN) et le LAN (VMnet2, host-only, passerelle `10.0.10.254`), apportant filtrage, NAT et politiques de sécurité en amont de ce que Wazuh/Suricata observent côté hôte — complète la limite HIDS identifiée en V1.
+2. **Zone LAN unique** : Kali, le serveur Wazuh et le client Windows partagent le même segment. Kali placé en interne simule un attaquant déjà présent dans le réseau (poste compromis, menace interne), ce qui change le modèle de menace par rapport à la V1.
+3. **Extension à un client Windows** (`10.0.10.40`), hors périmètre de la V1, pour élargir la couverture de détection au-delà des seules machines Linux.
+4. **Wazuh reste le SIEM central**, désormais déployé dans le LAN derrière le FortiGate, et collecte les événements du poste Windows.
+5. **Politiques FortiGate comme nouvelle surface de detection engineering** : au même titre que les règles Wazuh custom en V1, les règles de filtrage devront être testées, affinées et documentées suite aux campagnes d'attaque.
+
+**Point de vigilance :** les machines d'un même segment communiquent sans traverser le FortiGate. Le trafic latéral entre Kali et le client Windows ne sera donc pas inspecté par le firewall, et sa détection repose sur Wazuh (agents et règles).
 
 ---
 
-## 09. Conclusion
+## 08. Conclusion
 
 Ce projet a permis de déployer de bout en bout un SOC miniature fonctionnel autour de Wazuh, intégrant une détection basée hôte (HIDS, FIM, SCA) et une détection réseau complémentaire (Suricata/NIDS), face à une cible Linux volontairement vulnérable (DVWA) pilotée via un arsenal offensif CLI reproductible (Kali).
 
-La démarche suivie — attaquer, mesurer dans le Dashboard, analyser les logs bruts en cas de non-détection, écrire une règle custom, re-tester — constitue le cœur de la pratique de **detection engineering**, et a mis en évidence des limites réelles et documentées (HIDS vs NIDS, absence d'auditd, colocalisation du capteur réseau) plutôt que de masquer une couverture de détection idéalisée.
+La démarche définie (attaquer, mesurer dans le Dashboard, analyser les logs bruts en cas de non-détection, écrire une règle custom, re-tester) constitue le cœur de la pratique de **detection engineering**. Le projet a mis en évidence des limites réelles et documentées (HIDS vs NIDS, absence d'auditd, colocalisation du capteur réseau) plutôt que de masquer une couverture de détection idéalisée.
 
-Les résultats chiffrés définitifs (taux de détection initial/après règles, score SCA, couverture MITRE ATT&CK complète) restent à consolider lors de la campagne de test finale (section 07), mais la méthodologie, l'architecture et les 10 scénarios d'attaque mappés ATT&CK sont d'ores et déjà opérationnels et reproductibles.
+L'infrastructure, l'architecture et les 10 scénarios d'attaque mappés ATT&CK sont opérationnels et reproductibles. Aucune mesure chiffrée de détection n'a été relevée en V1 ; c'est un axe prioritaire pour la suite.
 
-Les perspectives V2 (auditd, Active Response finalisé, capteur réseau indépendant, extension Windows) donnent une feuille de route claire pour approfondir ce lab au-delà de sa version V1 Linux.
+Les perspectives (auditd, Active Response finalisé, puis la V2 segmentée autour de FortiGate avec extension Windows) donnent une feuille de route claire pour approfondir ce lab au-delà de sa version V1 Linux.
 
 ---
 
-## 10. Références
+## 09. Références
 
 - Documentation officielle Wazuh : [https://documentation.wazuh.com](https://documentation.wazuh.com)
 - MITRE ATT&CK : [https://attack.mitre.org](https://attack.mitre.org)
@@ -427,10 +392,9 @@ Le détail pas-à-pas de chaque étape (commandes exactes, fichiers de configura
 ├── rules/                       # Règles Wazuh custom (XML, commentées)
 ├── attack-scenarios/            # Scripts/commandes par scénario d'attaque
 ├── incident-reports/            # Rapports d'incident (Markdown)
-├── attack-coverage.md           # Matrice de couverture MITRE ATT&CK
-└── evidence/                    # Captures d'écran et preuves (alertes, scores SCA, etc.)
+└── evidence/                    # Captures d'écran et preuves (si présentes)
 ```
 
 ---
 
-<p align="center"><i>Document évolutif — à compléter au fil du projet avec les résultats réels, les captures d'écran de preuve et les retours d'expérience. Environnement de laboratoire fermé et personnel, à but pédagogique (lab isolé, identifiants fictifs).</i></p>
+<p align="center"><i>Document évolutif. Environnement de laboratoire fermé et personnel, à but pédagogique (lab isolé, identifiants fictifs).</i></p>
