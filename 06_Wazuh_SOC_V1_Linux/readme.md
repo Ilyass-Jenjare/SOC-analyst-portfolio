@@ -52,7 +52,7 @@ Ce projet a été réalisé dans le cadre d'un encadrement en entreprise, avec p
 | 1 cible Ubuntu Server (SSH + Apache + DVWA) | Cibles Windows |
 | 1 poste offensif Kali (CLI) | Automatisation SOAR avancée |
 | Détection réseau via Suricata (NIDS) | EDR commercial tiers |
-| FIM, SCA, Active Response de base | Threat Intel feeds externes payants |
+| FIM, SCA, Active Response de base, alertes par email | Threat Intel feeds externes payants |
 
 ### Contraintes du projet
 
@@ -130,6 +130,7 @@ Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration r�
 | Wazuh Manager | M1 | Corrélation, moteur de règles, alertes |
 | Wazuh Indexer | M1 | Stockage des événements (OpenSearch) |
 | Wazuh Dashboard | M1 | Visualisation (consultée depuis l'hôte, port 443) |
+| Postfix (relais SMTP) | M1 | Envoi des notifications d'alertes par email |
 | Wazuh Agent (v4.9.2) | M3 | Collecte logs, FIM, SCA |
 | OpenSSH Server | M3 | Service exposé, cible de brute force |
 | Apache2 + PHP + MariaDB | M3 | Serveur web applicatif |
@@ -156,6 +157,8 @@ La VM a été installée en Ubuntu Server minimal avec OpenSSH activé dès l'in
 La stack Wazuh (Manager, Indexer, Dashboard) a été déployée en mode **all-in-one** via le script d'installation assistée officiel, qui gère automatiquement les certificats TLS entre les trois composants. Les identifiants administrateur générés à l'issue de l'installation sont conservés dans un gestionnaire de mots de passe, jamais commités sur le dépôt.
 
 Un premier niveau de durcissement a ensuite été appliqué via un pare-feu applicatif (UFW), n'autorisant que les ports strictement nécessaires : SSH, HTTPS pour le dashboard, et les ports d'enrôlement/transmission des agents. Un scan de validation depuis Kali confirme qu'aucun autre port n'est exposé.
+
+Une intégration SMTP a ensuite été configurée sur le Manager : Wazuh ne gérant pas nativement l'authentification TLS exigée par les fournisseurs de messagerie, un relais local **Postfix** (TLS, authentification par mot de passe d'application) assure l'envoi, et le Manager lui transmet les alertes dépassant un seuil de sévérité défini (niveau 10) afin de notifier l'analyste par email. Les identifiants du relais restent hors du dépôt, comme les autres secrets.
 
 → Détail des sous-étapes et commandes : page Notion **« Serveur SIEM (Wazuh) »**.
 
@@ -235,7 +238,7 @@ Chaque scénario suit le même cycle de detection engineering :
 
 ### Sources de données corrélées par Wazuh
 
-| Source | Donne de la visibilité sur |
+| Source / Module | Donne de la visibilité sur (ou permet de) |
 |---|---|
 | Logs d'authentification système | Brute force SSH, connexions réussies/échouées |
 | Logs d'accès Apache | Requêtes web suspectes (SQLi, XSS, LFI) |
@@ -243,6 +246,7 @@ Chaque scénario suit le même cycle de detection engineering :
 | Syscheck (FIM) | Dépôt de fichiers (ex. webshell), temps réel sur DVWA et `/etc` |
 | SCA | Niveau de durcissement vs. CIS Benchmark |
 | auditd (recommandé, non actif en V1) | Exécution de commandes post-exploitation |
+| Intégration SMTP (alerting) | Notification de l'analyste par email pour les incidents de sévérité élevée |
 
 ### Détection attendue par scénario
 
@@ -262,6 +266,10 @@ Lorsqu'une technique n'est pas couverte par les règles natives (par exemple cer
 ### Active Response
 
 Objectif V1 : blocage automatique d'une IP source après dépassement d'un seuil de tentatives de brute force SSH. Statut : **à finaliser** — voir [section 07](#07-limites-et-améliorations).
+
+### Alerting par email
+
+Objectif V1 : notifier automatiquement l'analyste SOC pour toute alerte de sévérité élevée (niveau ≥ 10 dans la configuration retenue), via le relais Postfix du Manager. Le seuil est volontairement élevé pour limiter le bruit, et un plafond horaire d'envoi (`email_maxperhour`) évite la saturation de la boîte de réception, au prix d'un risque de notifications différées lors d'un pic d'alertes. Cette notification est une **action de sortie** : elle complète la détection sans s'y substituer.
 
 ### Processus d'investigation dans le Dashboard
 
