@@ -2,7 +2,6 @@
 
 **Détection d'intrusion et validation par attaques contrôlées (Blue Team / Purple Team)**
 
-![Status](https://img.shields.io/badge/status-en%20cours-yellow)
 ![SIEM](https://img.shields.io/badge/SIEM-Wazuh%204.9-success)
 
 > Projet personnel de cybersécurité mené en parallèle d'un encadrement en entreprise. Ce dépôt documente le déploiement d'un SOC miniature autour de Wazuh, la construction d'une cible Linux volontairement vulnérable, et l'émulation d'attaques réelles pour observer et améliorer la capacité de détection.
