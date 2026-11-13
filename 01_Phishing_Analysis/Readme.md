@@ -1,12 +1,12 @@
-# 01 - Phishing Analysis : *The Greenholt Phish*
+# 01 - Analyse de phishing : *The Greenholt Phish*
 
 ![Plateforme](https://img.shields.io/badge/Plateforme-TryHackMe-red)
 ![Parcours](https://img.shields.io/badge/Parcours-SOC%20Level%201-blue)
 ![Verdict](https://img.shields.io/badge/Verdict-MALVEILLANT-critical)
 
-Investigation d'un e-mail suspect signalé par un commercial de Greenholt PLC : analyse des en-têtes, vérification SPF/DMARC, attribution de l'IP source et analyse de la pièce jointe.
+Investigation d'un e-mail suspect signalé par un commercial de Greenholt PLC : analyse des en-têtes, vérification SPF/DMARC, attribution de l'IP source et analyse de la pièce jointe, sans exécution du fichier.
 
-📄 **[Lire le rapport complet (PDF)](report.pdf)**
+📄 **[Lire le rapport complet (PDF)](rapport.pdf)**
 
 ## Verdict
 
@@ -23,7 +23,15 @@ Investigation d'un e-mail suspect signalé par un commercial de Greenholt PLC : 
 | Réputation | **49/62** détections (archive), **58/71** (exécutable) sur VirusTotal |
 | Contexte | Demande de virement inattendue (fraude de type fausse facture / BEC) |
 
-**SHA-256 de la pièce jointe :** `2e91c533615a9bb8929ac4bb76707b2444597ce063d84a4b33525e25074fff3f`
+## Indicateurs de compromission (IOC)
+
+| Type | Valeur |
+|---|---|
+| IP d'envoi | `192.119.71[.]157` |
+| Domaine usurpé | `mutawamarine[.]com` |
+| Adresse Reply-To | `info.mutawamarine@mail[.]com` |
+| Fichier | `SWT_#09674321____PDF__.CAB` (archive RAR) |
+| SHA-256 | `2e91c533615a9bb8929ac4bb76707b2444597ce063d84a4b33525e25074fff3f` |
 
 ## Méthodologie
 
@@ -32,6 +40,12 @@ Investigation d'un e-mail suspect signalé par un commercial de Greenholt PLC : 
 3. Attribution de l'IP d'origine (géolocalisation, ASN, propriétaire)
 4. Hash de la pièce jointe (`sha256sum`) puis analyse VirusTotal (type réel, fichiers contenus)
 5. Extraction des IOC et cartographie MITRE ATT&CK
+
+## Actions recommandées
+
+- Bloquer l'IP, le domaine Reply-To et le hash au niveau passerelle e-mail et pare-feu.
+- Purger le message des boîtes aux lettres concernées et vérifier qu'aucun utilisateur n'a ouvert la pièce jointe.
+- Rappeler la procédure de vérification hors bande avant tout virement.
 
 ## MITRE ATT&CK
 
@@ -42,11 +56,10 @@ Investigation d'un e-mail suspect signalé par un commercial de Greenholt PLC : 
 ```
 01_Phishing_Analysis/
 ├── README.md        résumé du projet
-├── report.pdf       rapport d'investigation complet
+├── rapport.pdf      rapport d'investigation complet
 └── screenshots/     preuves (en-têtes, SPF, DMARC, IP, hash, VirusTotal)
 ```
 
 ## Compétences
 
 Analyse d'en-têtes e-mail · SPF / DMARC · Attribution d'IP · Analyse de pièce jointe · VirusTotal · Extraction d'IOC · MITRE ATT&CK · Rédaction de rapport d'incident
-
