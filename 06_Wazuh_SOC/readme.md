@@ -307,22 +307,21 @@ Objectif V1 : notifier automatiquement l'analyste SOC pour toute alerte de sév�
 La V2 place le lab derrière un firewall nouvelle génération (**FortiGate**), qui devient le point de passage entre Internet et le réseau interne, et étend la couverture à un poste Windows. Il n'y a pas de DMZ : tout le lab vit dans une zone LAN unique.
 
 ```
-                       [ INTERNET ]
-                            |
-                     (VMnet8 - NAT)
-                      Port 1 (WAN)
-                    +-------------------+
-                    |   FORTIGATE VM    |
-                    +-------------------+
-                            |
-                  LAN — VMnet2 (Host-Only)
-                  Passerelle : 10.0.10.254
-                            |
-          +-----------------+-----------------+
-          |                 |                 |
-   [ Kali attaquant ] [ Wazuh Server ] [ Client Windows ]
-                                        Poste de l'entreprise
-                                        IP : 10.0.10.40
+                                 [ INTERNET ]
+                                       |
+                                (VMnet8 - NAT)
+                                 Port 1 (WAN)
+                               +--------------+
+                               | FORTIGATE VM |
+                               +--------------+
+                                 |          |
+                   Port 2 (LAN) -+          +- Port 3 (DMZ)
+               (VMnet2 - Host-Only)         (Host-Only)
+                                 |          |
+         +-----------------+-----+          +----------------------+
+         |                 |     |                                 |
+  [ Kali attaquant ] [ Wazuh ] [ Client Windows ]        [ Serveur Victim Web ]
+                               Poste de l'entreprise
 ```
 
 ### Principes de cette évolution
