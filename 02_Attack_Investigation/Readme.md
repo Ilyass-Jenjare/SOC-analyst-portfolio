@@ -1,65 +1,74 @@
-# 01 - Analyse de phishing : *The Greenholt Phish*
+# 02 - Investigation d'attaque : *Boogeyman 1*
 
 ![Plateforme](https://img.shields.io/badge/Plateforme-TryHackMe-red)
-![Parcours](https://img.shields.io/badge/Parcours-SOC%20Level%201-blue)
-![Verdict](https://img.shields.io/badge/Verdict-MALVEILLANT-critical)
+![Verdict](https://img.shields.io/badge/Verdict-COMPROMISSION%20CONFIRMÉE-critical)
 
-Investigation d'un e-mail suspect signalé par un commercial de Greenholt PLC : analyse des en-têtes, vérification SPF/DMARC, attribution de l'IP source et analyse de la pièce jointe, sans exécution du fichier.
+Reconstitution d'une chaîne de compromission complète, de l'e-mail de phishing jusqu'à l'exfiltration de données, à partir des en-têtes e-mail, des journaux PowerShell et d'une capture réseau (PCAP).
 
-📄 **[Lire le rapport complet (PDF)](rapport.pdf)**
+📄 **[Lire le rapport complet (PDF)](rapport.pdf)** · 🕒 **[Chronologie technique détaillée](incident_timeline.md)**
+
+## Contexte
+
+Julianne, du service financier de Quick Logistics LLC, reçoit un e-mail concernant une facture impayée du partenaire B Packaging Inc. La pièce jointe est malveillante et exploitée par le groupe de menace **Boogeyman**. L'investigation couvre l'accès initial, les actions sur le poste et le trafic réseau de commande et contrôle (C2).
 
 ## Verdict
 
-**Phishing avec pièce jointe malveillante.** Confiance : élevée.
+**Compromission confirmée** : exécution de code sur le poste, accès à des données sensibles et exfiltration vers une infrastructure C2.
 
-## Constats clés
+## Chaîne d'attaque
 
-| Constat | Détail |
+| Étape | Constat |
 |---|---|
-| Usurpation de domaine | `Received-SPF: fail` : l'IP d'envoi n'est pas autorisée pour `mutawamarine.com` |
-| Reply-To détourné | Expéditeur `info@mutawamarine.com`, réponses vers `info.mutawamarine@mail.com` |
-| Infrastructure | IP `192.119.71.157` (Dallas, US), hébergeur mutualisé (HostPapa selon l'outil de recherche) |
-| Pièce jointe piégée | `SWT_#09674321____PDF__.CAB` est en réalité une **archive RAR** contenant un exécutable Win32 (`.com`) |
-| Réputation | **49/62** détections (archive), **58/71** (exécutable) sur VirusTotal |
-| Contexte | Demande de virement inattendue (fraude de type fausse facture / BEC) |
+| Accès initial | Phishing ciblé via l'infrastructure Elastic Email, avec le domaine de typosquatting `bpakcaging.xyz`. Pièce jointe : archive ZIP protégée par mot de passe contenant un fichier LNK malveillant |
+| Exécution | Le LNK contient une charge PowerShell obfusquée en Base64, qui récupère des instructions depuis `files.bpakcaging.xyz` |
+| Découverte et vol | Outils d'énumération (`Seatbelt.exe`, `sq3.exe`) utilisés pour accéder à `plum.sqlite` (Sticky Notes) et `protected_data.kdbx` (KeePass) |
+| Exfiltration | Résultats et fichiers envoyés par requêtes HTTP POST vers le C2 `cdn.bpakcaging.xyz` |
 
 ## Indicateurs de compromission (IOC)
 
 | Type | Valeur |
 |---|---|
-| IP d'envoi | `192.119.71[.]157` |
-| Domaine usurpé | `mutawamarine[.]com` |
-| Adresse Reply-To | `info.mutawamarine@mail[.]com` |
-| Fichier | `SWT_#09674321____PDF__.CAB` (archive RAR) |
-| SHA-256 | `2e91c533615a9bb8929ac4bb76707b2444597ce063d84a4b33525e25074fff3f` |
+| Domaine (typosquatting) | `bpakcaging[.]xyz` |
+| Serveur de payload | `files.bpakcaging[.]xyz` |
+| Serveur C2 / exfiltration | `cdn.bpakcaging[.]xyz` |
+| Outils | `Seatbelt.exe`, `sq3.exe` |
+| Données ciblées | `plum.sqlite`, `protected_data.kdbx` |
 
 ## Méthodologie
 
-1. Lecture des en-têtes bruts (Thunderbird) : Return-Path, Reply-To, chaîne `Received`
-2. Vérification de l'authentification : `dig txt` pour SPF et DMARC
-3. Attribution de l'IP d'origine (géolocalisation, ASN, propriétaire)
-4. Hash de la pièce jointe (`sha256sum`) puis analyse VirusTotal (type réel, fichiers contenus)
-5. Extraction des IOC et cartographie MITRE ATT&CK
-
-## Actions recommandées
-
-- Bloquer l'IP, le domaine Reply-To et le hash au niveau passerelle e-mail et pare-feu.
-- Purger le message des boîtes aux lettres concernées et vérifier qu'aucun utilisateur n'a ouvert la pièce jointe.
-- Rappeler la procédure de vérification hors bande avant tout virement.
+1. Analyse de l'e-mail : en-têtes (DKIM, SPF, relais tiers), corps, extraction de la pièce jointe
+2. Analyse du LNK (`lnkparse`) et décodage de la charge PowerShell (CyberChef)
+3. Exploitation des journaux PowerShell JSON en ligne de commande (`jq`, `grep`)
+4. Analyse du PCAP dans Wireshark : filtrage HTTP, reconstruction de flux TCP, trafic C2 et exfiltration
+5. Corrélation des sources et rédaction de la chronologie
 
 ## MITRE ATT&CK
 
-`T1566.001` Spearphishing Attachment · `T1204.002` User Execution · `T1036.007` Double File Extension · `T1656` Impersonation
+`T1566.001` Spearphishing Attachment · `T1204.002` User Execution · `T1059.001` PowerShell · `T1027` Obfuscated Files · `T1005` Data from Local System · `T1555.005` Password Managers · `T1071.001` Web Protocols (C2) · `T1041` Exfiltration Over C2 Channel
+
+## Outils
+
+- **E-mail :** Thunderbird, vérification des en-têtes
+- **Endpoint :** `lnkparse`, `jq`, `grep`
+- **Réseau :** Wireshark
+- **Décodage :** CyberChef (Base64, Hex)
 
 ## Structure du dossier
 
-```
-01_Phishing_Analysis/
-├── README.md        résumé du projet
-├── rapport.pdf      rapport d'investigation complet
-└── screenshots/     preuves (en-têtes, SPF, DMARC, IP, hash, VirusTotal)
+```text
+02_Attack_Investigation/
+├── README.md               résumé du projet
+├── incident_timeline.md    chronologie technique détaillée
+├── rapport.pdf             rapport d'investigation (LaTeX)
+└── screenshots/            preuves
+    ├── 01_email_headers.jpg    en-têtes (DKIM, relais)
+    ├── 02_email_body.png       ingénierie sociale et mot de passe ZIP
+    ├── 03_lnk_parse.png        extraction de la charge PowerShell
+    ├── 04_powershell_c2.png    boucle de communication C2
+    ├── 05_data_access.png      accès aux fichiers .sqlite et .kdbx
+    └── 06_wireshark_c2.jpg     trafic réseau vers le serveur de payload
 ```
 
 ## Compétences
 
-Analyse d'en-têtes e-mail · SPF / DMARC · Attribution d'IP · Analyse de pièce jointe · VirusTotal · Extraction d'IOC · MITRE ATT&CK · Rédaction de rapport d'incident
+Analyse d'e-mails · Forensique endpoint · Analyse PowerShell · Forensique réseau (Wireshark) · Désobfuscation Base64/Hex · Corrélation multi-sources · Chronologie d'incident · MITRE ATT&CK
