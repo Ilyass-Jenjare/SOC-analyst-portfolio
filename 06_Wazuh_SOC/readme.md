@@ -1,4 +1,4 @@
-# SOC Lab Wazuh 
+# SOC Lab Wazuh
 
 **Détection d'intrusion et validation par attaques contrôlées (Blue Team / Purple Team)**
 
@@ -11,15 +11,15 @@
 
 ## Sommaire
 
-1. [Introduction](#01-introduction)
-2. [Architecture](#02-architecture)
-3. [Infrastructure](#03-infrastructure)
-4. [Implémentation](#04-implémentation)
-5. [Scénarios de sécurité](#05-scénarios-de-sécurité)
-6. [Détection et investigation](#06-détection-et-investigation)
-7. [Limites et améliorations](#07-limites-et-améliorations)
-8. [Conclusion](#08-conclusion)
-9. [Références](#09-références)
+1. [01. Introduction](#01-introduction)
+2. [02. Architecture](#02-architecture)
+3. [03. Infrastructure](#03-infrastructure)
+4. [04. Implémentation](#04-implémentation)
+5. [05. Scénarios de sécurité](#05-scénarios-de-sécurité)
+6. [06. Détection et investigation](#06-détection-et-investigation)
+7. [07. Limites et améliorations](#07-limites-et-améliorations)
+8. [08. Conclusion](#08-conclusion)
+9. [09. Références](#09-références)
 
 ---
 
@@ -61,14 +61,13 @@ Ce projet a été réalisé dans le cadre d'un encadrement en entreprise, avec p
 | Matérielle | Laptop 16 Go RAM, hyperviseur VMware Workstation Pro, pas d'interface graphique sur les VM pour limiter la RAM |
 | Sécurité | Lab totalement isolé du réseau domestique (réseau NAT/host-only interne à l'hyperviseur), aucune attaque ne doit sortir du périmètre, identifiants fictifs documentés comme tels |
 
-
 ---
 
 ## 02. Architecture
 
 ### Schéma logique
 
-```
+```text
 =====================================================================
     RÉSEAU LOCAL UNIQUE : VMware NAT (isolé du réseau domestique)
 =====================================================================
@@ -95,18 +94,17 @@ Flux de données : chaque attaque lancée depuis Kali touche la machine Victime 
 
 ### Choix « CLI only »
 
-- Les trois VM (Wazuh, Kali, Victime) sont installées en mode **serveur / sans interface graphique**.
-- Administration exclusivement en **SSH** depuis le terminal de l'hôte.
-- Le dashboard Wazuh (interface web) est consulté depuis le navigateur de l'hôte Windows en pointant vers l'IP de la VM Wazuh — aucune VM n'a besoin d'environnement graphique pour cela.
+* Les trois VM (Wazuh, Kali, Victime) sont installées en mode **serveur / sans interface graphique**.
+* Administration exclusivement en **SSH** depuis le terminal de l'hôte.
+* Le dashboard Wazuh (interface web) est consulté depuis le navigateur de l'hôte Windows en pointant vers l'IP de la VM Wazuh — aucune VM n'a besoin d'environnement graphique pour cela.
 
 ### Adressage réseau — évolution du lab
 
 > **Note de transparence :** l'adressage IP du lab a évolué au fil des sessions de travail, le réseau NAT de VMware Workstation ayant été réattribué à plusieurs reprises entre les phases de déploiement. Le tableau ci-dessous reflète la plage utilisée. Cette dérive d'adressage est elle-même documentée comme point de vigilance en [section 07](#07-limites-et-améliorations).
 
 | Plage NAT | Wazuh Manager | Victime | Kali |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `192.168.111.0/24` | `192.168.111.100` | `192.168.111.150` | `192.168.111.200` |
-
 
 Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration réseau de chaque VM et la garder stable sur toute la durée du projet évite cette dérive.
 
@@ -117,16 +115,16 @@ Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration r�
 ### Dimensionnement des machines
 
 | VM | Rôle | OS | RAM allouée | vCPU | Disque |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | **Machine 1 — Wazuh** | Manager + Indexer + Dashboard | Ubuntu Server 22.04 LTS (CLI) | 4 Go | 2 | 40 Go |
 | **Machine 2 — Kali** | Poste offensif (Red Team) | Kali Linux 2026.x (CLI/minimal) | 2 Go | 2 | — |
 | **Machine 3 — Victime** | Cible (SSH, web, agent Wazuh) | Ubuntu Server 22.04 LTS (CLI) | 1,5 Go | 1 | 20 Go |
-| **Total VM actives** | | | **~7,5 Go** | | Marge confortable sur 16 Go |
+| **Total VM actives** |  |  | **~7,5 Go** |  | Marge confortable sur 16 Go |
 
 ### Stack logicielle
 
 | Composant | Machine | Rôle |
-|---|---|---|
+| --- | --- | --- |
 | Wazuh Manager | M1 | Corrélation, moteur de règles, alertes |
 | Wazuh Indexer | M1 | Stockage des événements (OpenSearch) |
 | Wazuh Dashboard | M1 | Visualisation (consultée depuis l'hôte, port 443) |
@@ -140,9 +138,9 @@ Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration r�
 
 ### Gestion des ressources
 
-- Hyperviseur : **VMware Workstation Pro**.
-- Snapshots de référence pris à chaque jalon stable : `01-Wazuh-Ready`, `01-Kali-Ready`, `01-Victime-Ready`, puis snapshot global `02-Lab-Operational`.
-- Bonne pratique appliquée : **Kali reste éteinte** en dehors des phases d'attaque pour limiter la consommation RAM continue sur le laptop hôte.
+* Hyperviseur : **VMware Workstation Pro**.
+* Snapshots de référence pris à chaque jalon stable : `01-Wazuh-Ready`, `01-Kali-Ready`, `01-Victime-Ready`, puis snapshot global `02-Lab-Operational`.
+* Bonne pratique appliquée : **Kali reste éteinte** en dehors des phases d'attaque pour limiter la consommation RAM continue sur le laptop hôte.
 
 ---
 
@@ -186,11 +184,38 @@ Cette machine concentre les deux surfaces d'attaque du lab : un service SSH expo
 
 Trois incidents réels ont été rencontrés pendant l'enrôlement de l'agent, conservés ici à titre de retour d'expérience plutôt que comme étapes de configuration :
 
-- **Erreur d'assignation de groupe** côté base de données interne de l'agent (`wazuh-db`), résolue par une correction des permissions et une réassignation manuelle de l'agent à son groupe.
-- **Saturation de l'espace disque** sur la VM Victime, résolue par un nettoyage des paquets, journaux et fichiers temporaires.
-- **Crash de l'API Wazuh** (`wazuh-apid` ne démarrait plus), causé par des processus zombies bloquant le port de l'API, résolu par un arrêt forcé puis un redémarrage propre du Manager.
+* **Erreur d'assignation de groupe** côté base de données interne de l'agent (`wazuh-db`), résolue par une correction des permissions et une réassignation manuelle de l'agent à son groupe.
+* **Saturation de l'espace disque** sur la VM Victime, résolue par un nettoyage des paquets, journaux et fichiers temporaires.
+* **Crash de l'API Wazuh** (`wazuh-apid` ne démarrait plus), causé par des processus zombies bloquant le port de l'API, résolu par un arrêt forcé puis un redémarrage propre du Manager.
 
 → Commandes de résolution détaillées : page Notion **« Victime (Ubuntu Server) »**.
+
+### 4.5 Configuration du pare-feu et Segmentation (FortiGate)
+
+L'intégration du pare-feu FortiGate (architecture V2) redéfinit la logique de sécurité du laboratoire en appliquant les principes de segmentation réseau et de **Zero Trust Architecture (ZTA)**. Contrairement à une approche traditionnelle où le réseau interne (LAN) est considéré comme sûr, la posture adoptée ici considère chaque zone comme potentiellement hostile.
+
+**Règles de filtrage (Firewall Policies)**
+
+Trois règles principales régissent les flux inter-zones, documentées selon le principe du moindre privilège :
+
+1. **LAN vers Internet (Port 2 → Port 1)**
+   * Autorise le trafic sortant de la zone LAN vers le WAN.
+   * Le paramètre NAT est activé pour permettre la navigation.
+
+2. **LAN vers DMZ (Port 2 → Port 3)**
+   * Autorise l'accès depuis le réseau interne vers le serveur applicatif isolé en DMZ.
+   * Cette règle est la voie d'accès utilisée par la machine offensive (Kali) pour attaquer la cible.
+
+3. **DMZ vers LAN — Collecte Wazuh (Port 3 → Port 2)**
+   * *Principe de micro-segmentation* : les connexions initiées depuis la DMZ vers le réseau interne sont par défaut bloquées pour contenir une éventuelle compromission du serveur web.
+   * Une unique exception est configurée : l'agent Wazuh situé en DMZ est autorisé à communiquer avec le Manager (LAN) exclusivement sur les ports d'enrôlement (TCP 1515) et de collecte d'événements (TCP 1514). Le service réseau correspondant, nommé « Wazuh_Ports », a été spécifiquement défini dans les objets Fortinet.
+
+**Défense Active : DoS Policies**
+
+En complément du filtrage de base, le pare-feu est configuré pour bloquer les comportements anormaux via les capteurs d'anomalies (DoS Policy) :
+
+* **Protection du réseau interne (LAN)** : un capteur d'anomalie est positionné sur l'interface entrante `port2`. Son objectif est de neutraliser les inondations de requêtes (ex : *TCP SYN Flood*, *ICMP Flood*) initiées depuis une machine interne compromise (ici, la machine Kali).
+* **Early Drop** : cette politique de déni de service est évaluée avant les règles de pare-feu standard, permettant de détruire immédiatement le trafic malveillant tout en générant un log Syslog (via l'action *Block* et le paramètre *Logging* activé). Ces logs enrichissent la télémétrie envoyée à Wazuh pour le *Threat Hunting*.
 
 ---
 
@@ -209,16 +234,16 @@ Chaque scénario suit le même cycle de detection engineering :
 
 ### Règles d'engagement (Rules of Engagement)
 
-- **Cible autorisée :** uniquement la machine Victime du lab.
-- **Hors périmètre :** la machine hôte Windows (non testée).
-- **Réseau :** environnement isolé/NAT interne, aucune exposition Internet.
-- **Objectif :** détection, pas exploitation destructive (pas de DoS, pas de persistance destructrice).
-- **Niveau DVWA Security :** tests idéalement menés à plusieurs niveaux (`low`, `medium`, `high`) pour observer si l'obfuscation de la requête échappe aux règles par défaut.
+* **Cible autorisée :** uniquement la machine Victime du lab.
+* **Hors périmètre :** la machine hôte Windows (non testée).
+* **Réseau :** environnement isolé/NAT interne, aucune exposition Internet.
+* **Objectif :** détection, pas exploitation destructive (pas de DoS, pas de persistance destructrice).
+* **Niveau DVWA Security :** tests idéalement menés à plusieurs niveaux (`low`, `medium`, `high`) pour observer si l'obfuscation de la requête échappe aux règles par défaut.
 
 ### Scénarios définis, mappés MITRE ATT&CK
 
 | # | Technique | Module DVWA / cible | MITRE ATT&CK | Approche |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | 1 | Reconnaissance réseau | Hôte Victime | T1046 | Scan de ports et services (nmap) |
 | 2 | Brute force SSH | Service OpenSSH | T1110.001 | Dictionnaire de mots de passe courts |
 | 3 | Brute force applicatif | DVWA — Brute Force | T1110.001 | Formulaire web, détection d'échec de connexion |
@@ -239,7 +264,7 @@ Chaque scénario suit le même cycle de detection engineering :
 ### Sources de données corrélées par Wazuh
 
 | Source / Module | Donne de la visibilité sur (ou permet de) |
-|---|---|
+| --- | --- |
 | Logs d'authentification système | Brute force SSH, connexions réussies/échouées |
 | Logs d'accès Apache | Requêtes web suspectes (SQLi, XSS, LFI) |
 | Alertes Suricata (NIDS) | Scans de ports, signatures réseau |
@@ -250,14 +275,14 @@ Chaque scénario suit le même cycle de detection engineering :
 
 ### Détection attendue par scénario
 
-- **Reconnaissance réseau (T1046) :** point de vigilance documenté — Wazuh est un **HIDS**, pas un NIDS. Sans Suricata, un simple scan de ports n'est **pas** détecté nativement. Suricata comble cette lacune en alimentant l'agent Wazuh.
-- **Brute force SSH / applicatif (T1110) :** couvert par les décodeurs natifs Wazuh sur les logs d'authentification et d'accès web.
-- **Injection SQL (T1190) :** détection native possible si le decoder web reconnaît les patterns d'injection ; sinon nécessite une règle custom.
-- **Command Injection (T1059) :** détection fiable uniquement si **auditd** est configuré sur l'agent pour tracer l'exécution de commandes par le processus web — non actif en V1, identifié comme axe d'amélioration.
-- **Webshell / File Upload (T1505.003) :** scénario de démonstration du **FIM temps réel** — un fichier déposé dans le répertoire d'upload doit déclencher une alerte en quelques minutes.
-- **XSS (T1059.007) :** généralement couvert par les règles web par défaut si le decoder applicatif est actif.
-- **LFI (T1083) :** pattern de traversée de répertoire dans les logs web, couvert si le décodeur web est actif.
-- **CSRF et Weak Session IDs :** signature réseau faible, documentés comme **angles morts probables** d'une détection HIDS classique sans WAF applicatif dédié.
+* **Reconnaissance réseau (T1046) :** point de vigilance documenté — Wazuh est un **HIDS**, pas un NIDS. Sans Suricata, un simple scan de ports n'est **pas** détecté nativement. Suricata comble cette lacune en alimentant l'agent Wazuh.
+* **Brute force SSH / applicatif (T1110) :** couvert par les décodeurs natifs Wazuh sur les logs d'authentification et d'accès web.
+* **Injection SQL (T1190) :** détection native possible si le decoder web reconnaît les patterns d'injection ; sinon nécessite une règle custom.
+* **Command Injection (T1059) :** détection fiable uniquement si **auditd** est configuré sur l'agent pour tracer l'exécution de commandes par le processus web — non actif en V1, identifié comme axe d'amélioration.
+* **Webshell / File Upload (T1505.003) :** scénario de démonstration du **FIM temps réel** — un fichier déposé dans le répertoire d'upload doit déclencher une alerte en quelques minutes.
+* **XSS (T1059.007) :** généralement couvert par les règles web par défaut si le decoder applicatif est actif.
+* **LFI (T1083) :** pattern de traversée de répertoire dans les logs web, couvert si le décodeur web est actif.
+* **CSRF et Weak Session IDs :** signature réseau faible, documentés comme **angles morts probables** d'une détection HIDS classique sans WAF applicatif dédié.
 
 ### Exemple de logique de règle custom
 
@@ -285,7 +310,7 @@ Objectif V1 : notifier automatiquement l'analyste SOC pour toute alerte de sév�
 ### Limites connues de l'architecture V1
 
 | Limite | Impact | Mitigation / statut |
-|---|---|---|
+| --- | --- | --- |
 | Wazuh est un **HIDS**, pas un NIDS natif | Les scans réseau simples ne sont pas détectés sans Suricata | Suricata intégré — mitigé |
 | Suricata et agent Wazuh colocalisés sur la machine cible | Un attaquant qui compromet la Victime peut désactiver la détection | Documenté comme limite de lab ; exploitable comme scénario d'évasion (T1562, Impair Defenses) pour une V2 |
 | auditd non configuré en V1 | Command Injection / exécution post-exploitation moins visible | Axe d'amélioration prioritaire V1.1 |
@@ -297,7 +322,7 @@ Objectif V1 : notifier automatiquement l'analyste SOC pour toute alerte de sév�
 ### Risques identifiés et mitigation
 
 | Risque | Impact | Mitigation |
-|---|---|---|
+| --- | --- | --- |
 | Consommation RAM excessive si les 3 VM tournent en continu | Ralentissement du lab | Éteindre Kali hors des phases d'attaque |
 | Dérive de périmètre (vouloir tout faire en V1) | Projet jamais terminé | Respecter strictement le hors-périmètre défini en section 01 |
 | Oubli de l'isolation réseau | Risque légal/éthique en cas de fuite d'attaque | Vérifier la configuration réseau avant chaque session d'attaque |
@@ -306,7 +331,7 @@ Objectif V1 : notifier automatiquement l'analyste SOC pour toute alerte de sév�
 
 La V2 place le lab derrière un firewall nouvelle génération (**FortiGate**), qui devient le point de passage entre Internet et le réseau interne, et étend la couverture à un poste Windows. Il n'y a pas de DMZ : tout le lab vit dans une zone LAN unique.
 
-```
+```text
                                  [ INTERNET ]
                                        |
                                 (VMnet8 - NAT)
@@ -350,17 +375,17 @@ Les perspectives (auditd, Active Response finalisé, puis la V2 autour de FortiG
 
 ## 09. Références
 
-- Documentation officielle Wazuh : [https://documentation.wazuh.com](https://documentation.wazuh.com)
-- MITRE ATT&CK : [https://attack.mitre.org](https://attack.mitre.org)
-- DVWA (Damn Vulnerable Web Application) : [https://github.com/digininja/DVWA](https://github.com/digininja/DVWA)
-- Suricata : [https://suricata.io](https://suricata.io)
-- CIS Benchmarks : [https://www.cisecurity.org/cis-benchmarks](https://www.cisecurity.org/cis-benchmarks)
-<
+* Documentation officielle Wazuh : [https://documentation.wazuh.com](https://documentation.wazuh.com)
+* MITRE ATT&CK : [https://attack.mitre.org](https://attack.mitre.org)
+* DVWA (Damn Vulnerable Web Application) : [https://github.com/digininja/DVWA](https://github.com/digininja/DVWA)
+* Suricata : [https://suricata.io](https://suricata.io)
+* CIS Benchmarks : [https://www.cisecurity.org/cis-benchmarks](https://www.cisecurity.org/cis-benchmarks)
+
 ---
 
 ## Structure du dépôt
 
-```
+```text
 06_SOC_Lab_Wazuh/
 ├── README.md                    # Ce document
 ├── architecture.md              # Schéma détaillé + justification des choix
@@ -369,7 +394,3 @@ Les perspectives (auditd, Active Response finalisé, puis la V2 autour de FortiG
 ├── incident-reports/            # Rapports d'incident (Markdown)
 └── evidence/                    # Captures d'écran et preuves (si présentes)
 ```
-
----
-
-<p align="center"><i>Document évolutif. Environnement de laboratoire fermé et personnel, à but pédagogique (lab isolé, identifiants fictifs).</i></p>
