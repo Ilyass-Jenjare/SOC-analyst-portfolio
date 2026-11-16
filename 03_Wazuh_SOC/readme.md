@@ -118,7 +118,7 @@ Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration r�
 | **Machine 1 — Wazuh** | Manager + Indexer + Dashboard | Ubuntu Server 22.04 LTS (CLI) | 8 Go | 2 | 40 Go |
 | **Machine 2 — Kali** | Poste offensif (Red Team) | Kali Linux 2026.x (CLI/minimal) | 2 Go | 2 | — |
 | **Machine 3 — Victime** | Cible (SSH, web, agent Wazuh) | Ubuntu Server 22.04 LTS (CLI) | 1,5 Go | 1 | 20 Go |
-| **Total VM actives** |  |  | **~7,5 Go** |  | Marge confortable sur 16 Go |
+| **Total VM actives** |  |  | **~11,5 Go** |  | Marge confortable sur 16 Go |
 
 ### Stack logicielle
 
