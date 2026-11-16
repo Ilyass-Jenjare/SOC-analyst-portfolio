@@ -384,5 +384,5 @@ Les perspectives (auditd, Active Response finalisé, puis la V2 autour de FortiG
 ├── README.md                    # Ce document
 ├── architecture.md              # Schéma détaillé + justification des choix
 ├── attack-scenarios/            # Scripts/commandes par scénario d'attaque
-└── evidence/                    # Captures d'écran et preuves (si présentes)
+└── evidence/                    # Captures d'écran et preuves 
 ```
