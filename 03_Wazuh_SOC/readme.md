@@ -115,7 +115,7 @@ Pour toute reproduction du lab, fixer la plage NAT **avant** la configuration r�
 
 | VM | Rôle | OS | RAM allouée | vCPU | Disque |
 | --- | --- | --- | --- | --- | --- |
-| **Machine 1 — Wazuh** | Manager + Indexer + Dashboard | Ubuntu Server 22.04 LTS (CLI) | 4 Go | 2 | 40 Go |
+| **Machine 1 — Wazuh** | Manager + Indexer + Dashboard | Ubuntu Server 22.04 LTS (CLI) | 8 Go | 2 | 40 Go |
 | **Machine 2 — Kali** | Poste offensif (Red Team) | Kali Linux 2026.x (CLI/minimal) | 2 Go | 2 | — |
 | **Machine 3 — Victime** | Cible (SSH, web, agent Wazuh) | Ubuntu Server 22.04 LTS (CLI) | 1,5 Go | 1 | 20 Go |
 | **Total VM actives** |  |  | **~7,5 Go** |  | Marge confortable sur 16 Go |
@@ -287,10 +287,6 @@ Chaque scénario suit le même cycle de detection engineering :
 
 Lorsqu'une technique n'est pas couverte par les règles natives (par exemple certains patterns SQLi), le principe retenu est d'écrire une règle `local_rules.xml` qui s'appuie sur la règle web générique de Wazuh et ajoute une détection par motif (`union select`, `information_schema`, etc.), associée à l'identifiant MITRE correspondant. Chaque règle custom ainsi créée est documentée dans `rules/` avec son objectif, sa logique, le log brut qui l'a motivée et la commande de re-test ayant permis de la valider.
 
-### Active Response
-
-Objectif V1 : blocage automatique d'une IP source après dépassement d'un seuil de tentatives de brute force SSH. Statut : **à finaliser** — voir [section 07](#07-limites-et-améliorations).
-
 ### Alerting par email
 
 Objectif V1 : notifier automatiquement l'analyste SOC pour toute alerte de sévérité élevée (niveau ≥ 10 dans la configuration retenue), via le relais Postfix du Manager. Le seuil est volontairement élevé pour limiter le bruit, et un plafond horaire d'envoi (`email_maxperhour`) évite la saturation de la boîte de réception, au prix d'un risque de notifications différées lors d'un pic d'alertes. Cette notification est une **action de sortie** : elle complète la détection sans s'y substituer.
@@ -335,17 +331,16 @@ La V2 place le lab derrière un firewall nouvelle génération (**FortiGate**), 
                                        |
                                 (VMnet8 - NAT)
                                  Port 1 (WAN)
-                               +--------------+
-                               | FORTIGATE VM |
-                               +--------------+
-                                 |          |
-                   Port 2 (LAN) -+          +- Port 3 (DMZ)
-               (VMnet2 - Host-Only)         (Host-Only)
-                                 |          |
-         +-----------------+-----+          +----------------------+
-         |                 |     |                                 |
-  [ Kali attaquant ] [ Wazuh ] [ Client Windows ]        [ Serveur Victim Web ]
-                               Poste de l'entreprise
+                               +--------------------------+
+                               |       FORTIGATE VM       |
+                               +--------------------------+
+                                 |                      |
+                   Port 2 (LAN) -+                      +- Port 3 (DMZ)
+               (VMnet2 - Host-Only)                     (Host-Only)
+                                 |                      |
+         +-----------------+-----------------+          +----------------------+
+         |                 |                 |                                 |
+  [ Kali attaquant ] [ Wazuh serveur ] [ Client Windows ]             [ Serveur Victime ] 
 ```
 
 ### Principes de cette évolution
