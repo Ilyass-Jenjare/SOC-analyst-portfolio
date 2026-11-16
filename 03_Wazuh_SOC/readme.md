@@ -327,14 +327,6 @@ Objectif V1 : notifier automatiquement l'analyste SOC pour toute alerte de sév�
 | Active Response non finalisé | Pas de blocage automatique démontré en V1 | Priorité pour une prochaine itération |
 | Aucune mesure chiffrée de détection relevée | Taux de détection, temps de détection et score SCA non documentés | Axe prioritaire pour la suite : mener une campagne de test et consigner les résultats |
 
-### Risques identifiés et mitigation
-
-| Risque | Impact | Mitigation |
-| --- | --- | --- |
-| Consommation RAM excessive si les 3 VM tournent en continu | Ralentissement du lab | Éteindre Kali hors des phases d'attaque |
-| Dérive de périmètre (vouloir tout faire en V1) | Projet jamais terminé | Respecter strictement le hors-périmètre défini en section 01 |
-| Oubli de l'isolation réseau | Risque légal/éthique en cas de fuite d'attaque | Vérifier la configuration réseau avant chaque session d'attaque |
-
 ### Perspectives V2
 
 La V2 place le lab derrière un firewall nouvelle génération (**FortiGate**), qui devient le point de passage entre Internet et le réseau interne, et étend la couverture à un poste Windows. Il n'y a pas de DMZ : tout le lab vit dans une zone LAN unique.
