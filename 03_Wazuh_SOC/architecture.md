@@ -53,17 +53,16 @@ La V2 du laboratoire place un **FortiGate** comme passerelle centrale. Il segmen
                                        |
                                 (VMnet8 - NAT)
                                  Port 1 (WAN)
-                               +--------------+
-                               | FORTIGATE VM |
-                               +--------------+
-                                 |          |
-                   Port 2 (LAN) -+          +- Port 3 (DMZ)
-               (VMnet2 - Host-Only)         (Host-Only)
-                                 |          |
-         +-----------------+-----+          +----------------------+
-         |                 |     |                                 |
-  [ Kali attaquant ] [ Wazuh ] [ Client Windows ]        [ Serveur Victim Web ]
-                               Poste de l'entreprise
+                               +--------------------------+
+                               |       FORTIGATE VM       |
+                               +--------------------------+
+                                 |                      |
+                   Port 2 (LAN) -+                      +- Port 3 (DMZ)
+               (VMnet2 - Host-Only)                     (Host-Only)
+                                 |                      |
+         +-----------------+-----------------+          +----------------------+
+         |                 |                 |                                 |
+  [ Kali attaquant ] [ Wazuh serveur ] [ Client Windows ]             [ Serveur Victime ] 
 ```
 
 ---
