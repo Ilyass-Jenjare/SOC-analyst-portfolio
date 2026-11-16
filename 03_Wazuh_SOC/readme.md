@@ -222,27 +222,29 @@ En complément du filtrage de base, le pare-feu est configuré pour bloquer les 
 
 ### Méthodologie Purple Team
 
-Chaque scénario suit le même cycle de detection engineering :
+Chaque scénario suit le même cycle de *Detection Engineering* :
 
 1. **Préparation** — définir la technique ATT&CK visée et le résultat attendu en détection.
 2. **Exécution de l'attaque** depuis Kali (CLI).
 3. **Vérification** dans le dashboard Wazuh (`Security Events`, `Threat Hunting`).
-4. **Si non détecté** — analyse du log brut, écriture d'une règle/décodeur custom.
+4. **Si non détecté** — analyse du log brut, écriture d'une règle/décodeur custom ou ajustement de la politique Firewall.
 5. **Re-test** de la même attaque pour valider la nouvelle règle.
 6. **Documentation** — rédaction du rapport d'incident.
 
 ### Règles d'engagement (Rules of Engagement)
 
-* **Cible autorisée :** uniquement la machine Victime du lab.
-* **Hors périmètre :** la machine hôte Windows (non testée).
-* **Réseau :** environnement isolé/NAT interne, aucune exposition Internet.
-* **Objectif :** détection, pas exploitation destructive (pas de DoS, pas de persistance destructrice).
-* **Niveau DVWA Security :** tests idéalement menés à plusieurs niveaux (`low`, `medium`, `high`) pour observer si l'obfuscation de la requête échappe aux règles par défaut.
+- **Cible autorisée :** uniquement la machine Victime du lab (en DMZ).
+- **Hors périmètre :** la machine hôte Windows (non testée).
+- **Réseau :** environnement isolé/NAT interne, aucune exposition Internet.
+- **Objectif :** démontrer la complémentarité entre la sécurité périmétrique (Firewall) et la détection sur l'hôte (SIEM).
 
-### Scénarios définis, mappés MITRE ATT&CK
+---
+
+### 5.1 Phase 1 : Scénarios orientés Hôte (Architecture V1)
+Ces scénarios initiaux ont été conçus pour tester les capacités de détection natives de Wazuh (HIDS) face à une application web vulnérable, avant l'introduction du pare-feu.
 
 | # | Technique | Module DVWA / cible | MITRE ATT&CK | Approche |
-| --- | --- | --- | --- | --- |
+|---|---|---|---|---|
 | 1 | Reconnaissance réseau | Hôte Victime | T1046 | Scan de ports et services (nmap) |
 | 2 | Brute force SSH | Service OpenSSH | T1110.001 | Dictionnaire de mots de passe courts |
 | 3 | Brute force applicatif | DVWA — Brute Force | T1110.001 | Formulaire web, détection d'échec de connexion |
@@ -252,9 +254,20 @@ Chaque scénario suit le même cycle de detection engineering :
 | 7 | Dépôt de webshell | DVWA — File Upload | T1505.003 / T1105 | Upload d'un fichier PHP minimal |
 | 8 | Local File Inclusion | DVWA — File Inclusion | T1083 | Traversée de répertoire vers fichiers système |
 | 9 | CSRF | DVWA — CSRF | T1185 | Requête forgée hors session légitime |
-| 10 | Session IDs faibles | DVWA — Weak Session IDs | T1539 | Analyse de prévisibilité des identifiants de session |
+| 10| Session IDs faibles | DVWA — Weak Session IDs | T1539 | Analyse de prévisibilité des identifiants de session |
 
-→ Commandes exactes de chaque scénario : page Notion **« Intégration et Validation »** et rapport de pentesting associé.
+---
+
+### 5.2 Phase 2 : Défense en profondeur (Architecture V2 - FortiGate + Wazuh)
+L'intégration du pare-feu FortiGate modifie le modèle de menace. Ces 3 scénarios avancés démontrent l'interaction entre le NGFW (blocage) et le SIEM (visibilité et détection applicative).
+
+| Scénario | Type de Menace | MITRE ATT&CK | Description et Vecteur | Résultat Attendu (Défense Active) |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Déni de Service (L4)** | Volumétrique | T1498 (Network Denial of Service) | Inondation de paquets (*SYN Flood* / *ICMP Flood*) lancée depuis Kali (LAN) vers le serveur web (DMZ) à l'aide de `hping3`. | **Blocage par FortiGate.** Le trafic est détruit par l'*Early Drop* de la **DoS Policy**. Le log Syslog est envoyé à Wazuh générant une alerte "Multiple high traffic events". |
+| **2. Attaque Web (L7)** | Applicative | T1190 (Exploit Public-Facing App) | Injection SQL via `sqlmap` sur le port 80. La règle Firewall autorise le port 80 sans *Security Profile* (sans IPS) pour simuler un pare-feu mal configuré ou permissif. | **Détection par Wazuh.** Le FortiGate laisse passer l'attaque (trafic légitime sur le port 80). L'agent Wazuh sur la victime analyse le log Apache et déclenche l'alerte d'injection. |
+| **3. Scan Agressif (Exploit)** | Réseau furtif / Exploitation | T1046 / T1190 | Tentative d'exploitation de vulnérabilité connue ou scan agressif. Activation du profil **IPS (Intrusion Prevention System)** sur la politique Firewall vers la DMZ. | **Blocage par FortiGate (IPS).** Le pare-feu inspecte le contenu du paquet (Deep Packet Inspection), reconnaît la signature d'attaque, détruit la connexion et alerte Wazuh via Syslog. |
+
+> *Note : Les commandes exactes et les captures d'écran des alertes (Wazuh Dashboard) pour cette phase 2 sont documentées dans le dossier `/attack-scenarios`.*
 
 ---
 
