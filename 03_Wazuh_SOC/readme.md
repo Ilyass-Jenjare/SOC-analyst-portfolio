@@ -325,7 +325,6 @@ Objectif V1 : notifier automatiquement l'analyste SOC pour toute alerte de sév�
 | CSRF et Weak Session IDs | Signature réseau faible, angles morts probables d'un HIDS classique | Nécessiterait un WAF ou une corrélation applicative avancée — hors périmètre V1 |
 | Dérive d'adressage IP (voir section 02) | Documentation et scripts à réajuster entre sessions | Fixer la plage NAT avant toute configuration réseau pour les prochaines itérations |
 | Active Response non finalisé | Pas de blocage automatique démontré en V1 | Priorité pour une prochaine itération |
-| Aucune mesure chiffrée de détection relevée | Taux de détection, temps de détection et score SCA non documentés | Axe prioritaire pour la suite : mener une campagne de test et consigner les résultats |
 
 ### Perspectives V2
 
