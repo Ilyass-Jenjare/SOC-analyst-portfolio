@@ -383,8 +383,6 @@ Les perspectives (auditd, Active Response finalisé, puis la V2 autour de FortiG
 06_SOC_Lab_Wazuh/
 ├── README.md                    # Ce document
 ├── architecture.md              # Schéma détaillé + justification des choix
-├── rules/                       # Règles Wazuh custom (XML, commentées)
 ├── attack-scenarios/            # Scripts/commandes par scénario d'attaque
-├── incident-reports/            # Rapports d'incident (Markdown)
 └── evidence/                    # Captures d'écran et preuves (si présentes)
 ```
