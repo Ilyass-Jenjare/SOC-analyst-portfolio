@@ -43,16 +43,6 @@ Ce projet a été réalisé dans le cadre d'un encadrement en entreprise, avec p
 - Savoir cartographier des attaques sur le référentiel **MITRE ATT&CK**.
 - Développer un réflexe de detection engineering : attaquer, mesurer, corriger, revalider.
 
-### Périmètre
-
-| Dans le périmètre (V1 Linux) | Hors périmètre (V1) |
-|---|---|
-| Wazuh Manager/Indexer/Dashboard (all-in-one) | Cluster Wazuh multi-nœuds |
-| 1 cible Ubuntu Server (SSH + Apache + DVWA) | Cibles Windows |
-| 1 poste offensif Kali (CLI) | Automatisation SOAR avancée |
-| Détection réseau via Suricata (NIDS) | EDR commercial tiers |
-| FIM, SCA, Active Response de base, alertes par email | Threat Intel feeds externes payants |
-
 ### Contraintes du projet
 
 | Type | Détail |
