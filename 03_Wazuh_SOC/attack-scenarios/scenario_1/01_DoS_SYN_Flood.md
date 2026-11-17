@@ -104,7 +104,7 @@ sudo hping3 -S -p 80 --flood 192.16.10.20
 
 ---
 
-## 🔎 Enseignements clés (Lessons Learned)
+##  Enseignements clés (Lessons Learned)
 
 - La **Défense Active L4** du FortiGate neutralise efficacement les attaques volumétriques basiques sans intervention humaine.
 - L'intégration **FortiGate → Syslog → Wazuh** permet une visibilité SOC complète, du blocage périmétrique jusqu'à l'alerte exploitable par l'analyste.
