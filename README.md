@@ -39,7 +39,7 @@ Ce dépôt rassemble mes projets pratiques en cybersécurité, démontrant mes c
 - **Threat Intelligence & OSINT :** VirusTotal, urlscan.io, ANY.RUN, MXToolbox.
 - **SIEM & Sécurité Périmétrique :** Wazuh, FortiGate, Suricata.
 - **Tests d'intrusion & Émulation :** Kali Linux (nmap, Hydra, sqlmap), DVWA.
-- **Cadres de Référence :** MITRE ATT&CK, NIST SP 800-61, SANS Incident Handling.
+- **Cadres de Référence :** MITRE ATT&CK, SANS Incident Handling.
 
 ---
 
