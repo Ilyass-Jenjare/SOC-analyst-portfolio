@@ -1,18 +1,18 @@
 # Scénario 2 : Attaque Web Applicative (SQL Injection) et Détection HIDS
 
 ![Status](https://img.shields.io/badge/Status-Validé-brightgreen)
-![Severity](https://img.shields.io/badge/Wazuh_Level-5-orange)
+![Severity](https://img.shields.io/badge/Wazuh_Level-12-red)
 ![MITRE](https://img.shields.io/badge/MITRE_ATT%26CK-T1190-blue)
 
 ##  Résumé exécutif
 
 | | |
 |---|---|
-| **Objectif** | Valider la stratégie de Defense-in-Depth : démontrer que lorsqu'une attaque applicative (L7) traverse le pare-feu faute d'inspection de contenu, l'agent HIDS Wazuh installé sur l'hôte prend le relais |
+| **Objectif** | Valider la stratégie de Defense-in-Depth : démontrer que lorsqu'une attaque applicative (L7) traverse le pare-feu faute d'inspection de contenu, l'agent HIDS Wazuh prend le relais — puis affiner la détection générique en règle SQLi dédiée à haute sévérité |
 | **Technique MITRE ATT&CK** | [T1190 – Exploit Public-Facing Application](https://attack.mitre.org/techniques/T1190/) |
 | **Attaquant** | Kali Linux — `10.0.10.30` (Zone LAN) |
 | **Cible** | Serveur Web applicatif — `192.16.10.20` (Zone DMZ), agent Wazuh `victim2` |
-| **Résultat** | Attaque **non bloquée** par le réseau, mais **détectée** par le HIDS (Règle `31101`) |
+| **Résultat** | Attaque **non bloquée** par le réseau, **détectée** par le HIDS, puis **qualifiée et priorisée** par une règle de corrélation custom (`100050`, niveau 12) |
 
 ---
 
@@ -52,14 +52,11 @@ curl -s "http://192.16.10.20/vulnerabilities/sqli/?id=1'+OR+1=1--&Submit=Submit"
 
 **Résultat réseau :** la requête traverse le FortiGate sans être bloquée ni journalisée comme suspecte, confirmant l'absence d'inspection L7.
 
-
 ---
 
-## 4. Chaîne de détection et triage SIEM (Wazuh — HIDS)
+## 4. Détection initiale (HIDS générique)
 
-L'attaque ayant atteint le serveur, le payload malformé provoque une erreur applicative. L'agent Wazuh installé localement (`victim2`) lit les journaux Apache (`access.log` / `error.log`) et remonte l'anomalie au Manager.
-
-**Triage dans Wazuh (`Threat Hunting`) :**
+L'attaque ayant atteint le serveur, le payload malformé provoque une erreur applicative. L'agent Wazuh installé localement (`victim2`) lit les journaux Apache (`access.log` / `error.log`) et remonte une première alerte générique au Manager.
 
 | Champ | Valeur observée |
 |---|---|
@@ -67,9 +64,64 @@ L'attaque ayant atteint le serveur, le payload malformé provoque une erreur app
 | **Règle déclenchée** | `31101` |
 | **Description** | *Web server 400 error code.* |
 | **Niveau de sévérité** | `5` |
-| **Source de la détection** | Journaux applicatifs Apache (HIDS), **pas** le FortiGate |
 
-**Résultat :** le réseau n'a pas bloqué la menace, mais la Défense en Profondeur a fonctionné — l'analyste SOC est alerté d'une requête web malformée (signature probable d'injection) ciblant le serveur DMZ, permettant d'engager une réponse à incident.
+**Limite identifiée :** cette règle native ne distingue pas une tentative d'injection d'une simple erreur applicative bénigne (requête malformée, typo utilisateur, bug front-end...). Elle sert uniquement de signal faible.
+
+
+---
+
+## 5. Affinage de la détection — Règle de corrélation SQLi personnalisée
+
+Pour éliminer ce bruit et qualifier précisément la menace, une règle locale a été écrite sur le Wazuh Manager afin de corréler l'erreur HTTP 400 (`31101`) avec la présence de motifs d'injection SQL dans la requête loggée.
+
+**Fichier :** `/var/ossec/etc/rules/local_rules.xml`
+
+```xml
+<group name="apache,sqli,">
+  <!-- Règle de détection SQLi spécifique -->
+  <rule id="100050" level="12">
+    <if_sid>31101</if_sid>
+    <match>SELECT |UNION |INSERT |UPDATE |DELETE |DROP |' OR|'+OR</match>
+    <description>SQL Injection attempt detected in URL (HTTP 400 Error).</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+    <group>attack,sqli,</group>
+  </rule>
+</group>
+```
+
+**Logique de la règle :**
+- `<if_sid>31101</if_sid>` : la règle ne s'évalue que sur les événements déjà classés comme erreur HTTP 400 (règle parente), évitant tout faux positif sur du trafic normal.
+- `<match>` : recherche de motifs SQLi courants dans l'URL loggée (mots-clés SQL, opérateurs d'évasion `OR`, commentaires `--`).
+- **Niveau 12** (contre 5 pour la règle générique) : classe l'alerte en sévérité haute, visible immédiatement dans le dashboard principal et non noyée dans le bruit des erreurs 400 ordinaires.
+- Tag **MITRE ATT&CK T1190** : enrichit l'alerte pour la cartographie et le reporting.
+
+**Déploiement :**
+```bash
+# Validation de la syntaxe avant redémarrage
+/var/ossec/bin/wazuh-logtest
+
+# Application de la règle
+systemctl restart wazuh-manager
+```
+
+---
+
+## 6. Validation finale (Triage SIEM)
+
+Rejeu de l'attaque après activation de la règle `100050` :
+
+| Champ | Valeur observée |
+|---|---|
+| **Règle déclenchée** | `100050` (dérivée de `31101`) |
+| **Description** | *SQL Injection attempt detected in URL (HTTP 400 Error).* |
+| **Niveau de sévérité** | `12` |
+| **Groupe** | `attack, sqli` |
+| **Tag MITRE** | `T1190` |
+
+**Résultat :** l'alerte générique de niveau 5, auparavant noyée dans le volume d'erreurs HTTP courantes, est désormais remontée comme un événement de sécurité critique et explicitement qualifié d'injection SQL, avec mapping MITRE ATT&CK natif — directement exploitable par l'analyste SOC pour une réponse à incident.
+
 
 ---
 
@@ -78,50 +130,36 @@ L'attaque ayant atteint le serveur, le payload malformé provoque une erreur app
 - [x] Règle FortiGate `LAN_to_DMZ` confirmée sans Security Profiles (aucune inspection L7)
 - [x] Requête SQLi envoyée depuis Kali (`10.0.10.30`) vers `192.16.10.20`
 - [x] Trafic non bloqué au niveau réseau (traversée confirmée)
-- [x] Alerte Niveau 5 visible dans Wazuh (règle `31101`, agent `victim2`)
-- [x] Capture d'écran de l'alerte HIDS
+- [x] Alerte générique Niveau 5 visible dans Wazuh (règle `31101`, agent `victim2`)
+- [x] Règle locale `100050` créée et déployée (`local_rules.xml`)
+- [x] Syntaxe validée via `wazuh-logtest` avant redémarrage
+- [x] Alerte Niveau 12 confirmée après rejeu de l'attaque
+- [x] Capture d'écran de l'alerte qualifiée (règle `100050`)
 
 ---
 
 ##  Enseignements clés (Lessons Learned)
 
 - Une politique de pare-feu sans **Security Profiles** ne protège que contre les menaces de couche 3/4 : elle est aveugle à toute attaque applicative transitant sur un port autorisé.
-- Le **HIDS** (agent Wazuh sur l'hôte) constitue une ligne de défense complémentaire indispensable, capable de détecter ce que le réseau ne voit pas.
-- La règle `31101` (erreur 400) est un indicateur **générique** : elle signale une anomalie de requête, pas spécifiquement une injection SQL. Une règle dédiée affinerait la précision (voir recommandations).
+- Le **HIDS** (agent Wazuh sur l'hôte) constitue une ligne de défense complémentaire indispensable, capable de détecter ce que le réseau ne voit pas — mais une règle générique (`31101`) reste un signal faible, insuffisant pour prioriser une réponse.
+- L'écriture d'une **règle de corrélation custom** (`if_sid` + `match`) transforme un bruit de fond en alerte de sécurité qualifiée et actionnable, sans dépendre d'un équipement réseau supplémentaire.
+- Cette approche illustre une compétence SOC clé : **adapter la détection aux logs réellement disponibles**, plutôt que d'attendre une solution périmétrique idéale.
 
 ---
 
-##  Recommandations
+##  Recommandations restantes
 
-La question « faut-il activer l'IPS du firewall » appelle une réponse en plusieurs couches — l'IPS seul ne suffit pas pour ce type d'attaque, et c'est justement tout l'intérêt pédagogique de ce scénario.
+La détection applicative est désormais opérationnelle côté SIEM. Les axes suivants restent pertinents pour renforcer la défense en profondeur :
 
-### 1. Activer un profil de sécurité L7 sur le FortiGate — nécessaire mais insuffisant seul
-- **IPS (Intrusion Prevention System)** : ajoute un profil IPS à la politique `LAN_to_DMZ`, avec les signatures de la catégorie *Web Application* / *SQL Injection* activées en mode `Block`. Cela peut intercepter des payloads SQLi *connus et signés*, mais un attaquant qui obfusque sa requête (encodage, espaces, commentaires SQL) peut contourner une signature générique.
-- **Limite réelle** : un NGFW avec IPS est pensé pour des exploits réseau et des signatures connues, pas pour une analyse syntaxique fine du paramètre d'une application web. C'est pourquoi FortiGate propose un module distinct pour ce cas précis.
+### 1. Corriger la vulnérabilité à la source (priorité n°1)
+- Utiliser des **requêtes préparées / paramétrées** (prepared statements) côté application.
+- Valider et filtrer les entrées utilisateur côté serveur.
+- Appliquer le principe du moindre privilège sur le compte de base de données utilisé par l'application.
 
-### 2. Déployer un WAF (Web Application Firewall) — la vraie réponse au problème
-- Sur FortiGate, cela correspond au profil **Web Application Firewall** dans Security Profiles, qu'on peut combiner avec l'IPS sur la même politique.
-- Le WAF applique des règles spécifiques aux attaques applicatives (OWASP Top 10 : SQLi, XSS, path traversal...) en analysant la structure des requêtes HTTP (paramètres, en-têtes, body), ce qu'un IPS générique ne fait pas aussi finement.
-- Alternative si pas de FortiWeb/WAF dédié : un reverse proxy avec **ModSecurity** + règles **OWASP CRS** devant le serveur applicatif.
+### 2. Ajouter une couche de blocage réseau (défense en profondeur)
+- **WAF (Web Application Firewall)** sur FortiGate (profil dédié dans Security Profiles) ou via un reverse proxy **ModSecurity + OWASP CRS** devant le serveur applicatif — pour bloquer la requête *avant* qu'elle n'atteigne l'application.
+- **IPS** en complément sur la politique `LAN_to_DMZ` : utile contre des signatures d'exploits réseau connus, mais à ne pas considérer comme suffisant seul face à une injection applicative obfusquée (voir limite documentée au Scénario 3).
 
-### 3. Corriger la vulnérabilité à la source (priorité réelle en environnement de production)
-- Le vrai problème est que le paramètre `id` n'est pas assaini côté application (requêtes SQL non préparées). Aucun contrôle périmétrique ne remplace une correction applicative :
-  - Utiliser des **requêtes préparées / paramétrées** (prepared statements).
-  - Valider et filtrer les entrées utilisateur côté serveur.
-  - Appliquer le principe du moindre privilège sur le compte de base de données utilisé par l'application.
-
-### 4. Affiner la détection côté Wazuh
-- Créer une règle personnalisée dans `local_rules.xml` qui corrèle la règle générique `31101` avec la présence de motifs SQLi dans l'URL loggée (`OR 1=1`, `UNION SELECT`, `--`, `'`), pour distinguer une vraie tentative d'injection d'une simple erreur applicative bénigne.
-- Augmenter la sévérité de cette règle dérivée (niveau 10+) pour qu'elle déclenche une alerte prioritaire plutôt qu'un niveau 5 générique, facilement noyé dans le bruit.
-
-### Synthèse priorisée
-
-| Priorité | Action | Effet |
-|---|---|---|
-| 1 | Corriger le code applicatif (requêtes préparées) | Élimine la vulnérabilité à la racine |
-| 2 | Activer WAF (ou ModSecurity/CRS) sur le chemin HTTP | Bloque la majorité des injections avant l'application |
-| 3 | Activer IPS en complément sur la politique DMZ | Couvre les signatures d'exploits réseau connus |
-| 4 | Règle Wazuh dédiée SQLi | Réduit le bruit et accélère le triage SOC |
 
 ---
 
