@@ -68,7 +68,7 @@ sudo hping3 -S -p 80 --flood 192.16.10.20
  *Preuve : [`evidence/02_kali_hping3_attack.png`](./evidence/02_kali_hping3_attack.png)*
 
 ---
-
+ 
 ## 4. Chaîne de détection et triage SIEM (Wazuh)
 
 À la suite du blocage, la chaîne de détection suivante s'exécute de bout en bout :
