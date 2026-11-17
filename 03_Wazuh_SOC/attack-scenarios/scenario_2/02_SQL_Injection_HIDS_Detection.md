@@ -164,4 +164,3 @@ La détection applicative est désormais opérationnelle côté SIEM. Les axes s
 ---
 
 *Scénario précédent : [01_DoS_SYN_Flood.md](../scenario_1/01_DoS_SYN_Flood.md)*
-*Scénario suivant : [03_IPS_Blocking.md](../scenario_3/03_IPS_Blocking.md)*
