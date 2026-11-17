@@ -40,7 +40,6 @@ Le SYN Flood exploite une vulnérabilité architecturale inhérente au protocole
 
 **Principe de l'Early Drop :** le capteur d'anomalie, positionné sur l'interface entrante, détruit les paquets malveillants dès réception, avant qu'ils n'atteignent la DMZ — préservant ainsi les ressources du pare-feu et du serveur cible.
 
- *Preuve : [`evidence/01_fortigate_dos_policy.png`](./evidence/01_fortigate_dos_policy.png)*
 
 ---
 
@@ -65,7 +64,6 @@ sudo hping3 -S -p 80 --flood 192.16.10.20
 2. Interruption via `Ctrl + C`.
 3. Résultat observé : `100% packet loss` — confirmant l'interception des paquets par le pare-feu.
 
- *Preuve : [`evidence/02_kali_hping3_attack.png`](./evidence/02_kali_hping3_attack.png)*
 
 ---
  
@@ -90,7 +88,6 @@ sudo hping3 -S -p 80 --flood 192.16.10.20
 
 **Résultat :** l'attaque est bloquée en amont et l'analyste SOC identifie positivement l'IP interne responsable du trafic anormal.
 
- *Preuve : [`evidence/03_wazuh_alert_81619.png`](./evidence/03_wazuh_alert_81619.png)*
 
 ---
 
